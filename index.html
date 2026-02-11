@@ -12,15 +12,12 @@
         :root { --neon-red: #ff3131; --neon-green: #39ff14; --hk-gold: #ffd700; --msg-blue: #007aff; --msg-gray: #e9e9eb; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; font-family: -apple-system, sans-serif; overflow: hidden; }
         
-        /* 메인 레이아웃 - 배경 이미지가 온라인에 있다면 URL을 교체하세요 */
         #entry-page { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: url('villa interior.png') no-repeat center center/cover; z-index: 50000; display: flex; justify-content: center; align-items: center; }
         #stage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100vw; height: 66.67vw; max-width: 150vh; max-height: 100vh; background: url('villa.png') no-repeat center center/contain; background-color: #000; }
 
-        /* 상단 UI */
         #sitemap-btn { position: fixed; top: 25px; left: 25px; width: 50px; height: 50px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; cursor: pointer; z-index: 1100; border-radius: 12px; display: none; align-items: center; justify-content: center; font-size: 1.2rem; }
         #user-indicator { position: fixed; top: 25px; right: 25px; padding: 12px 25px; border: 2px solid var(--neon-green); border-radius: 30px; color: var(--neon-green); font-weight: bold; z-index: 1000; background: rgba(0,0,0,0.85); display: none; cursor: pointer; }
 
-        /* 클릭 포인트 */
         .target { position: absolute; cursor: pointer; z-index: 10; }
         .wall-pos { top: 18%; left: 50%; width: 15%; height: 35%; } 
         .movie-pos { top: 8%; left: 63%; width: 20%; height: 15%; } 
@@ -30,7 +27,6 @@
         .lib-pos { top: 35%; left: 35%; width: 12%; height: 25%; } 
         .exit-pos { top: 15%; left: 91%; width: 9%; height: 75%; } 
 
-        /* 도어락 */
         .lock-box { background: rgba(0,0,0,0.95); padding: 30px; border-radius: 20px; border: 2px solid var(--neon-red); width: 300px; text-align: center; }
         .user-sel { flex:1; padding:12px; background:#111; color:white; border:1px solid #444; cursor:pointer; }
         .user-sel.active { border: 2px solid var(--neon-green) !important; color: var(--neon-green) !important; }
@@ -38,12 +34,10 @@
         .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .key { padding: 20px; background: #111; border: 1px solid #333; cursor: pointer; }
 
-        /* 모달 시스템 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; justify-content: center; align-items: center; }
         .modal-inner { background: #1c1c1e; width: 90%; max-width: 750px; height: 85vh; border-radius: 25px; padding: 30px; overflow-y: auto; position: relative; color: white; }
         .close-btn { position: absolute; top: 20px; right: 25px; cursor: pointer; font-size: 2.5rem; color: #8e8e93; }
 
-        /* 일기장(메신저 스타일) */
         .diary-theme { background: #fff !important; color: #000 !important; }
         .msg-date-center { text-align: center; font-size: 0.75rem; color: #8e8e93; margin: 20px 0 10px 0; font-weight: 600; }
         .diary-row { display: flex; margin-bottom: 15px; align-items: flex-end; width: 100%; }
@@ -53,7 +47,6 @@
         .bubble.yours { background: var(--msg-gray); color: #000; border-bottom-left-radius: 4px; }
         .diary-actions { font-size: 0.7rem; opacity: 0.6; margin-top: 5px; display: flex; gap: 8px; cursor: pointer; }
 
-        /* 서재/영화 리스트 */
         .bookshelf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; padding: 20px; background: #3d2b1f; border-radius: 8px; border-bottom: 15px solid #2a1d15; box-shadow: inset 0 -10px 20px rgba(0,0,0,0.5); }
         .book-spine { width: 35px; height: 140px; background: #5a3e2b; color: #ddd; writing-mode: vertical-rl; padding: 10px 4px; cursor: pointer; border-left: 4px solid rgba(255,255,255,0.2); font-size: 0.8rem; text-align: center; transition: 0.2s; overflow: hidden; border-radius: 2px; font-family: 'Noto Serif KR', serif; }
         .book-spine:hover { transform: translateY(-15px) scale(1.05); filter: brightness(1.3); z-index: 5; }
@@ -61,13 +54,11 @@
         .movie-card { background: #2c2c2e; padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #3a3a3c; }
         .movie-reply-area { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 10px; margin-top: 10px; font-size: 0.85rem; }
 
-        /* 담벼락 전단지 스타일 */
         .flyer { position: absolute; background: #fffce0; color: #333; padding: 15px; width: 120px; min-height: 140px; box-shadow: 5px 5px 15px rgba(0,0,0,0.3); font-family: 'Nanum Pen Script', cursive; font-size: 1.3rem; border: 1px solid #ddd; }
         .flyer-x { position: absolute; top: 2px; right: 5px; cursor: pointer; font-family: sans-serif; font-size: 0.8rem; color: #999; }
         .flyer-fringe { position: absolute; bottom: 0; left: 0; width: 100%; height: 20px; display: flex; justify-content: space-around; }
         .fringe-bit { width: 1px; height: 100%; background: rgba(0,0,0,0.1); }
 
-        /* 캘린더 스타일 */
         .cal-container { background: #fff; color: #333; border-radius: 15px; padding: 20px; }
         .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: bold; font-size: 1.2rem; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #eee; border: 1px solid #eee; }
@@ -133,7 +124,6 @@
 </div>
 
 <script>
-    // 2. 파이버베이스 초기화
     const firebaseConfig = {
         apiKey: "AIzaSyDLTGv4Z3zJUseuKw1acvHHwPzooZhXodc",
         authDomain: "villa302.firebaseapp.com",
@@ -151,8 +141,8 @@
     let currentCalDate = new Date();
     let selectedCalKey = "";
     let selectedEmo = "🏠";
+    let userProfiles = {}; // 서버에서 불러온 프로필 이미지들을 담을 객체
 
-    // 로그인 및 글로벌 핸들러
     function handleGlobalKey(e) { 
         if (e.key === "Escape") closeModal(); 
         if (document.getElementById('entry-page').style.display !== 'none') {
@@ -174,12 +164,19 @@
             document.getElementById('user-indicator').style.display='block'; 
             document.getElementById('sitemap-btn').style.display='flex'; 
             document.getElementById('active-user').innerText = currentUser;
+            syncProfiles(); // 프로필 정보 동기화 시작
             loadBGM(); 
         } else { alert("암호가 일치하지 않습니다."); inputPw=""; updatePwDisp(); } 
     }
     function exitRoom() { if(confirm("로그아웃 하시겠습니까?")) location.reload(); }
 
-    // 탭 열기
+    // 서버의 프로필 이미지들을 실시간으로 감시하여 userProfiles에 담아둡니다.
+    function syncProfiles() {
+        db.ref('profiles').on('value', (snapshot) => {
+            userProfiles = snapshot.val() || {};
+        });
+    }
+
     const tabs = {
         sitemap: () => `<h3>SITEMAP</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
             <div style="background:#333; padding:20px; border-radius:10px; cursor:pointer;" onclick="openTab('diary')">📔 일기장</div>
@@ -191,7 +188,7 @@
         </div>`,
         profile: () => `<h3>👤 PROFILE SETTING</h3>
             <div style="text-align:center;">
-                <div id="prof-preview" style="width:120px; height:120px; border-radius:20px; background:#444; margin:20px auto; background-size:cover; background-position:center;"></div>
+                <div id="prof-preview" style="width:120px; height:120px; border-radius:20px; background:#444; margin:20px auto; background-size:cover; background-position:center; background-image:url('${userProfiles[currentUser] || ''}')"></div>
                 <p><b>${currentUser}</b>님의 프로필</p>
                 <input type="file" id="prof-input" accept="image/*" onchange="uploadProfile(this)" style="display:none">
                 <button class="btn-action" onclick="document.getElementById('prof-input').click()">이미지 변경</button>
@@ -236,7 +233,6 @@
         document.getElementById('modal-content').innerHTML = tabs[id]();
         document.getElementById('main-modal').style.display = 'flex';
         
-        if(id==='profile') { const img=localStorage.getItem(`prof_${currentUser}`); if(img) document.getElementById('prof-preview').style.backgroundImage=`url(${img})`; }
         if(id==='diary') loadDiary();
         if(id==='movie') loadMovies();
         if(id==='library') loadShelf();
@@ -245,8 +241,6 @@
         if(id==='calendar') renderCalendar();
     }
     function closeModal() { document.getElementById('main-modal').style.display = 'none'; }
-
-    // --- 3. 실시간 서버 통신 로직 ---
 
     // [일기장]
     function saveDiary() {
@@ -265,7 +259,7 @@
             chat.innerHTML = list.map(i => {
                 let dateHead = (i.d !== lastD) ? `<div class="msg-date-center">${i.d}</div>` : ""; lastD = i.d;
                 const isMine = i.u === currentUser;
-                const profImg = localStorage.getItem(`prof_${i.u}`) || '';
+                const profImg = userProfiles[i.u] || ''; // 서버에서 실시간 동기화된 프로필 사진 사용
                 return `${dateHead}
                 <div class="diary-row" style="flex-direction:${isMine?'row-reverse':'row'}">
                     <div class="profile-pic" style="background-image:url('${profImg}')"></div>
@@ -331,11 +325,11 @@
     function delMovie(fKey) { if(confirm("삭제할까요?")) db.ref(`movie_v2/${fKey}`).remove(); }
 
     // [서재]
-    function saveBook() {
-        const t = document.getElementById('lib-t').value, c = document.getElementById('lib-c').value; if(!t) return;
+    function writeBook() {
+        const t = prompt("제목:"); if(!t) return;
+        const c = prompt("내용:"); if(!c) return;
         const colors = ['#5a3e2b', '#3e5a2b', '#2b3e5a', '#5a2b2b', '#444'];
         db.ref('lib_v3').push({ id: Date.now(), t, c, color: colors[Math.floor(Math.random()*colors.length)] });
-        openTab('library');
     }
     function loadShelf() {
         db.ref('lib_v3').on('value', (snapshot) => {
@@ -415,11 +409,16 @@
     function selectEmo(emo) { selectedEmo = emo; document.querySelectorAll('.emo-item').forEach(el => el.classList.remove('active')); document.getElementById('emo-'+emo).classList.add('active'); }
     function saveCal() { if(!selectedCalKey) return; db.ref(`cal_v3/${selectedCalKey}`).set({ emo: selectedEmo, memo: document.getElementById('cal-memo-in').value }); }
 
-    // [기타: 갤러리/BGM/프로필]
+    // [갤러리/BGM/프로필]
     function uploadProfile(input) {
         const file = input.files[0]; if(!file) return;
         const reader = new FileReader();
-        reader.onload = (e) => { localStorage.setItem(`prof_${currentUser}`, e.target.result); document.getElementById('prof-preview').style.backgroundImage = `url(${e.target.result})`; };
+        reader.onload = (e) => {
+            const base64Img = e.target.result;
+            // 로컬 스토리지가 아닌 파이어베이스 profiles/유저이름 경로에 저장
+            db.ref('profiles/' + currentUser).set(base64Img);
+            document.getElementById('prof-preview').style.backgroundImage = `url(${base64Img})`;
+        };
         reader.readAsDataURL(file);
     }
     function uploadPhoto() {
