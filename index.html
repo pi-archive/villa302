@@ -2,24 +2,58 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Villa 302: The Archive</title>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
-    
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
 
     <style>
-        :root { --neon-red: #ff3131; --neon-green: #39ff14; --hk-gold: #ffd700; --msg-blue: #007aff; --msg-gray: #e9e9eb; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; font-family: -apple-system, sans-serif; overflow: hidden; }
-        
-        #entry-page { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: url('villa interior.png') no-repeat center center/cover; z-index: 50000; display: flex; justify-content: center; align-items: center; }
-        #stage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100vw; height: 66.67vw; max-width: 150vh; max-height: 100vh; background: url('villa.png') no-repeat center center/contain; background-color: #000; }
+        /* --- [VILLA 302 ORIGINAL DESIGN SYSTEM] --- */
+        :root { 
+            --neon-red: #ff3131; 
+            --neon-green: #39ff14; 
+            --hk-gold: #ffd700; 
+            --msg-blue: #007aff; 
+            --msg-gray: #e9e9eb; 
+            --apple-bg: #1c1c1e;
+        }
 
-        #sitemap-btn { position: fixed; top: 25px; left: 25px; width: 50px; height: 50px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; cursor: pointer; z-index: 1100; border-radius: 12px; display: none; align-items: center; justify-content: center; font-size: 1.2rem; }
-        #user-indicator { position: fixed; top: 25px; right: 25px; padding: 12px 25px; border: 2px solid var(--neon-green); border-radius: 30px; color: var(--neon-green); font-weight: bold; z-index: 1000; background: rgba(0,0,0,0.85); display: none; cursor: pointer; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background: #000; color: white; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            overflow: hidden; -webkit-font-smoothing: antialiased;
+        }
 
-        .target { position: absolute; cursor: pointer; z-index: 10; }
+        /* Entry Page (Lock Screen) */
+        #entry-page { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: url('villa interior.png') no-repeat center center/cover; 
+            z-index: 50000; display: flex; justify-content: center; align-items: center; 
+        }
+        .lock-box { 
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); 
+            padding: 40px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);
+            width: 320px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        .user-sel-btn {
+            flex: 1; padding: 15px; background: rgba(255,255,255,0.05); color: white;
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 15px; cursor: pointer;
+            font-weight: bold; transition: 0.3s;
+        }
+        .user-sel-btn.active { border-color: var(--neon-green); color: var(--neon-green); background: rgba(57,255,20,0.1); }
+
+        /* Main Stage */
+        #stage { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            width: 100vw; height: 66.67vw; max-width: 150vh; max-height: 100vh; 
+            background: url('villa.png') no-repeat center center/contain; background-color: #000; 
+        }
+
+        /* Targets */
+        .target { position: absolute; cursor: pointer; z-index: 10; transition: 0.3s; }
+        .target:hover { background: rgba(255,255,255,0.1); border-radius: 10px; }
         .wall-pos { top: 18%; left: 50%; width: 15%; height: 35%; } 
         .movie-pos { top: 8%; left: 63%; width: 20%; height: 15%; } 
         .cal-pos { top: 45%; left: 74%; width: 8%; height: 20%; } 
@@ -28,65 +62,117 @@
         .lib-pos { top: 35%; left: 35%; width: 12%; height: 25%; } 
         .exit-pos { top: 15%; left: 91%; width: 9%; height: 75%; } 
 
-        .lock-box { background: rgba(0,0,0,0.95); padding: 30px; border-radius: 20px; border: 2px solid var(--neon-red); width: 300px; text-align: center; }
-        .user-sel { flex:1; padding:12px; background:#111; color:white; border:1px solid #444; cursor:pointer; }
-        .user-sel.active { border: 2px solid var(--neon-green) !important; color: var(--neon-green) !important; }
-        .pw-screen { font-size: 2.2rem; color: var(--neon-red); margin-bottom: 20px; letter-spacing: 10px; background: #000; padding: 10px; border: 1px solid #333; height: 50px; }
-        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .key { padding: 20px; background: #111; border: 1px solid #333; cursor: pointer; }
+        /* UI Elements */
+        #sitemap-btn { 
+            position: fixed; top: 30px; left: 30px; width: 55px; height: 55px; 
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(15px); 
+            border: 1px solid rgba(255,255,255,0.2); color: white; cursor: pointer; 
+            z-index: 1100; border-radius: 15px; display: none; align-items: center; justify-content: center; font-size: 1.5rem; 
+        }
+        #user-indicator { 
+            position: fixed; top: 30px; right: 30px; padding: 15px 25px; 
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
+            border: 1px solid var(--neon-green); border-radius: 40px; 
+            color: var(--neon-green); font-weight: 800; z-index: 1000; display: none; cursor: pointer;
+            letter-spacing: 1px; box-shadow: 0 0 15px rgba(57,255,20,0.2);
+        }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; justify-content: center; align-items: center; }
-        .modal-inner { background: #1c1c1e; width: 90%; max-width: 750px; height: 85vh; border-radius: 25px; padding: 30px; overflow-y: auto; position: relative; color: white; }
-        .close-btn { position: absolute; top: 20px; right: 25px; cursor: pointer; font-size: 2.5rem; color: #8e8e93; }
+        /* Modal System */
+        .modal { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.92); z-index: 10000; justify-content: center; align-items: center; 
+        }
+        .modal-inner { 
+            background: var(--apple-bg); width: 92%; max-width: 800px; height: 85vh; 
+            border-radius: 35px; padding: 40px; overflow-y: auto; position: relative; color: white; 
+            border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        }
+        .close-btn { position: absolute; top: 25px; right: 30px; cursor: pointer; font-size: 2.8rem; color: #444; transition: 0.3s; }
+        .close-btn:hover { color: #fff; }
 
-        /* 캘린더 스타일 */
-        .cal-container { background: #fff; color: #333; border-radius: 15px; padding: 15px; }
-        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-weight: bold; }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; }
-        .cal-day-label { background: #f8f8f8; padding: 8px 0; text-align: center; font-size: 0.75rem; font-weight: bold; }
-        .cal-cell { background: #fff; min-height: 70px; padding: 5px; cursor: pointer; display: flex; flex-direction: column; }
-        .cal-date-num { font-size: 0.75rem; color: #999; }
-        .cal-emo-disp { font-size: 1.3rem; text-align: center; margin: 2px 0; }
-        .cal-memo-disp { font-size: 0.65rem; color: #666; text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        /* --- [1. 고도화 서재 CSS] --- */
+        .shelf { 
+            background: #3d2b1f; border: 12px solid #2a1d15; border-radius: 8px; 
+            padding: 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); 
+            gap: 20px; min-height: 450px; box-shadow: inset 0 0 60px #000; align-content: start;
+        }
+        .book { 
+            width: 75px; height: 120px; border-left: 18px solid rgba(0,0,0,0.25); border-radius: 4px; 
+            position: relative; cursor: pointer; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            display: flex; align-items: center; justify-content: center; box-shadow: 8px 8px 15px rgba(0,0,0,0.4);
+        }
+        .book:hover { transform: translateY(-20px) rotate(-3deg); box-shadow: 12px 20px 25px rgba(0,0,0,0.6); }
+        .book-title { font-size: 0.8rem; color: #fff; text-align: center; writing-mode: vertical-rl; padding: 8px; font-weight: 500; }
 
-        #cal-editor { margin-top: 15px; padding: 15px; background: #f1f1f7; border-radius: 15px; display: none; color: #333; }
-        .emo-scroll-box { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; }
-        .emo-item { flex: 0 0 auto; width: 60px; text-align: center; cursor: pointer; padding: 8px; border-radius: 10px; border: 1px solid #ddd; background: white; }
-        .emo-item.active { border: 2px solid var(--msg-blue); background: #eef7ff; }
-
-        .btn-action { background: var(--msg-blue); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; }
-        textarea, input { width: 100%; padding: 12px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 10px; box-sizing: border-box; margin-bottom: 8px; }
-        
+        /* --- [2. 아이메시지 일기장 CSS] --- */
         .diary-theme { background: #fff !important; color: #000 !important; }
-        .diary-row { display: flex; margin-bottom: 15px; align-items: flex-end; }
-        .profile-pic { width: 40px; height: 40px; border-radius: 12px; background-size: cover; background-position: center; margin: 0 8px; background-color: #eee; flex-shrink: 0; }
-        .bubble { max-width: 65%; padding: 10px 14px; border-radius: 18px; font-size: 0.9rem; }
-        .bubble.mine { background: var(--msg-blue); color: #fff; border-bottom-right-radius: 2px; }
-        .bubble.yours { background: var(--msg-gray); color: #000; border-bottom-left-radius: 2px; }
-        
-        .insta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .insta-item { aspect-ratio: 1/1; background-size: cover; background-position: center; border-radius: 8px; }
+        #diary-chat { height: calc(100% - 160px); overflow-y: auto; padding: 25px; display: flex; flex-direction: column; }
+        .diary-row { display: flex; margin-bottom: 14px; align-items: flex-end; width: 100%; }
+        .profile-pic { width: 38px; height: 38px; border-radius: 50%; background-size: cover; background-position: center; margin: 0 10px; flex-shrink: 0; background-color: #f0f0f0; }
+        .bubble { 
+            max-width: 72%; padding: 12px 18px; border-radius: 22px; font-size: 1rem; 
+            position: relative; word-wrap: break-word; line-height: 1.45;
+        }
+        .bubble.mine { background: var(--msg-blue); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
+        .bubble.yours { background: var(--msg-gray); color: #000; border-bottom-left-radius: 4px; }
+
+        /* --- [3. 캘린더 & 이모지 CSS] --- */
+        .cal-container { background: #fff; color: #333; border-radius: 25px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: 700; font-size: 1.2rem; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #eee; border-radius: 10px; overflow: hidden; }
+        .cal-cell { background: #fff; min-height: 100px; padding: 10px; cursor: pointer; transition: 0.2s; position: relative; }
+        .cal-cell:hover { background: #f9f9f9; }
+        .emo-scroll-box { display: flex; gap: 12px; overflow-x: auto; padding: 15px 5px; scrollbar-width: none; }
+        .emo-item { 
+            flex: 0 0 auto; width: 60px; text-align: center; cursor: pointer; 
+            padding: 12px; border-radius: 15px; border: 1.5px solid #eee; background: #fff; transition: 0.2s;
+        }
+        .emo-item.active { border-color: var(--msg-blue); background: #f0f7ff; transform: scale(1.05); }
+
+        /* --- [4. 인스타그램 갤러리 CSS] --- */
+        .insta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .insta-item { aspect-ratio: 1/1; background-size: cover; background-position: center; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .insta-item:hover { filter: brightness(0.8); }
+
+        /* Profile & Common UI */
+        #prof-preview { 
+            width: 150px; height: 150px; border-radius: 50%; border: 5px solid var(--neon-green); 
+            margin: 20px auto; background-size: cover; background-position: center; 
+            box-shadow: 0 10px 25px rgba(57,255,20,0.3);
+        }
+        .btn-action { 
+            background: var(--msg-blue); color: white; border: none; padding: 16px; 
+            border-radius: 15px; cursor: pointer; width: 100%; font-weight: 700; font-size: 1rem;
+            margin-top: 15px; transition: 0.3s;
+        }
+        .btn-action:active { transform: scale(0.98); filter: brightness(1.2); }
+        input, textarea { 
+            width: 100%; padding: 16px; background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 15px; 
+            box-sizing: border-box; margin-bottom: 15px; font-size: 1rem;
+        }
+        textarea:focus { outline: none; border-color: var(--msg-blue); }
     </style>
 </head>
 <body onkeydown="handleGlobalKey(event)">
 
-<div id="yt-player-container" style="position: absolute; top: -1000px;"><div id="player"></div></div>
-
+<div id="bgm-player" style="position: absolute; top: -1000px;"></div>
 <div id="sitemap-btn" onclick="openTab('sitemap')">☰</div>
 <div id="user-indicator" onclick="openTab('profile')">ACCESS: <span id="active-user"></span></div>
 
 <div id="entry-page">
     <div class="lock-box">
-        <div style="display:flex; gap:10px; margin-bottom:20px;">
-            <button onclick="selectUser('평화','1231')" id="btn-평화" class="user-sel">평화</button>
-            <button onclick="selectUser('인철','0526')" id="btn-인철" class="user-sel">인철</button>
+        <h2 style="margin-top:0; color:#fff; font-size:1.2rem; letter-spacing:2px;">VILLA 302</h2>
+        <div style="display:flex; gap:12px; margin-bottom:30px;">
+            <button onclick="selectUser('평화','1231')" id="btn-평화" class="user-sel-btn">평화</button>
+            <button onclick="selectUser('인철','0526')" id="btn-인철" class="user-sel-btn">인철</button>
         </div>
-        <div id="pw-disp" class="pw-screen">----</div>
-        <div class="keypad">
-            <script>for(let i=1; i<=9; i++) document.write(`<div class="key" onclick="pressKey('${i}')">${i}</div>`);</script>
-            <div class="key" onclick="inputPw=''">C</div>
-            <div class="key" onclick="pressKey('0')">0</div>
-            <div class="key" onclick="checkPw()" style="background:var(--neon-red)">E</div>
+        <div id="pw-disp" style="font-size: 2.8rem; color: var(--neon-red); margin-bottom: 30px; height: 60px; font-family: 'Courier New', Courier, monospace; letter-spacing: 8px;">----</div>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px;">
+            <script>for(let i=1; i<=9; i++) document.write(`<div style="padding:22px; background:rgba(255,255,255,0.05); border-radius:15px; cursor:pointer; font-size:1.2rem;" onclick="pressKey('${i}')">${i}</div>`);</script>
+            <div style="padding:22px; background:rgba(255,255,255,0.05); border-radius:15px; cursor:pointer;" onclick="inputPw=''">C</div>
+            <div style="padding:22px; background:rgba(255,255,255,0.05); border-radius:15px; cursor:pointer;" onclick="pressKey('0')">0</div>
+            <div style="padding:22px; background:var(--neon-red); border-radius:15px; cursor:pointer;" onclick="checkPw()">E</div>
         </div>
     </div>
 </div>
@@ -109,6 +195,7 @@
 </div>
 
 <script>
+    // --- [FIREBASE INITIALIZATION] ---
     const firebaseConfig = {
         apiKey: "AIzaSyDLTGv4Z3zJUseuKw1acvHHwPzooZhXodc",
         authDomain: "villa302.firebaseapp.com",
@@ -121,109 +208,77 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let currentUser = "", targetPw = "", inputPw = "";
-    let currentCalDate = new Date();
-    let selectedCalKey = "", selectedEmo = "🏠";
-    let userProfiles = {}, ytPlayer;
+    let currentUser = "", targetPw = "", inputPw = "", tempImgData = "";
+    let userProfiles = {}, currentCalDate = new Date(), selectedCalKey = "", selectedEmo = "🏠";
 
-    // --- 유튜브 API 로직 (추가됨) ---
-    function onYouTubeIframeAPIReady() {
-        ytPlayer = new YT.Player('player', {
-            height: '0', width: '0',
-            playerVars: { 'autoplay': 1, 'controls': 0, 'loop': 1 },
-            events: { 
-                'onReady': () => { if(currentUser) loadBGM(); },
-                'onStateChange': (e) => { if(e.data === YT.PlayerState.ENDED) ytPlayer.playVideo(); } 
-            }
-        });
-    }
-
-    function loadBGM() {
-        db.ref('settings/bgm').on('value', (s) => {
-            const id = s.val();
-            if(id && ytPlayer && ytPlayer.loadVideoById) { 
-                ytPlayer.loadVideoById(id); 
-                ytPlayer.playVideo(); 
-            }
-        });
-    }
-
-    function saveBGM() {
-        let val = document.getElementById('bgm-url-in').value;
-        let id = val.includes('v=') ? val.split('v=')[1].split('&')[0] : (val.includes('youtu.be/') ? val.split('youtu.be/')[1].split('?')[0] : val);
-        if(id) db.ref('settings/bgm').set(id).then(() => alert("BGM이 변경되었습니다!"));
-    }
-
-    // --- 기존 UI 제어 로직 ---
-    function handleGlobalKey(e) { 
-        if (e.key === "Escape") closeModal(); 
-        if (document.getElementById('entry-page').style.display !== 'none') {
-            if (e.key >= '0' && e.key <= '9') pressKey(e.key);
-            else if (e.key === 'Enter') checkPw();
-        }
-    }
-
+    // --- [CORE LOGIC: LOGIN & UI] ---
     function selectUser(u, p) { 
         currentUser = u; targetPw = p; inputPw = ""; 
-        document.querySelectorAll('.user-sel').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.user-sel-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-'+u).classList.add('active');
         updatePwDisp(); 
     }
     function pressKey(n) { if(inputPw.length < 4) inputPw += n; updatePwDisp(); }
     function updatePwDisp() { document.getElementById('pw-disp').innerText = "*".repeat(inputPw.length) || "----"; }
-
-    function checkPw() { 
-        if(inputPw === targetPw) { 
-            document.getElementById('entry-page').style.display='none'; 
-            document.getElementById('user-indicator').style.display='block'; 
-            document.getElementById('sitemap-btn').style.display='flex'; 
+    
+    function checkPw() {
+        if(inputPw === targetPw) {
+            document.getElementById('entry-page').style.display='none';
+            document.getElementById('user-indicator').style.display='flex';
+            document.getElementById('sitemap-btn').style.display='flex';
             document.getElementById('active-user').innerText = currentUser;
-            db.ref('profiles').on('value', (s) => { userProfiles = s.val() || {}; });
-            if(ytPlayer) loadBGM(); 
-        } else { alert("암호가 일치하지 않습니다."); inputPw=""; updatePwDisp(); } 
+            
+            // 프로필 실시간 로드
+            db.ref('profiles').on('value', s => { 
+                userProfiles = s.val() || {}; 
+                // 현재 열린 프로필 창이 있다면 갱신
+                const preview = document.getElementById('prof-preview');
+                if(preview) preview.style.backgroundImage = `url('${userProfiles[currentUser] || ''}')`;
+            });
+            
+            loadBGM();
+        } else { alert("암호가 올바르지 않습니다."); inputPw=""; updatePwDisp(); }
     }
 
     function exitRoom() { if(confirm("로그아웃 하시겠습니까?")) location.reload(); }
+    function handleGlobalKey(e) { if (e.key === "Escape") closeModal(); }
 
+    // --- [TAB CONTENTS & RENDERERS] ---
     const tabs = {
-        sitemap: () => `<h3>SITEMAP</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-            <div style="background:#333; padding:20px; border-radius:10px; cursor:pointer;" onclick="openTab('diary')">📔 일기장</div>
-            <div style="background:#333; padding:20px; border-radius:10px; cursor:pointer;" onclick="openTab('calendar')">📅 일정</div>
-            <div style="background:#333; padding:20px; border-radius:10px; cursor:pointer;" onclick="openTab('bgm_settings')">🎵 배경음악</div>
-            <div style="background:#333; padding:20px; border-radius:10px; cursor:pointer;" onclick="openTab('movie')">🎬 영화</div>
-            <div style="background:#333; padding:20px; border-radius:10px; cursor:pointer;" onclick="openTab('gallery')">📸 사진</div>
+        sitemap: () => `<h3>SITEMAP</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+            <div style="background:rgba(255,255,255,0.05); padding:30px; border-radius:20px; cursor:pointer; text-align:center;" onclick="openTab('diary')"><div style="font-size:2rem; margin-bottom:10px;">📔</div>일기장</div>
+            <div style="background:rgba(255,255,255,0.05); padding:30px; border-radius:20px; cursor:pointer; text-align:center;" onclick="openTab('library')"><div style="font-size:2rem; margin-bottom:10px;">📚</div>서재</div>
+            <div style="background:rgba(255,255,255,0.05); padding:30px; border-radius:20px; cursor:pointer; text-align:center;" onclick="openTab('calendar')"><div style="font-size:2rem; margin-bottom:10px;">📅</div>일정</div>
+            <div style="background:rgba(255,255,255,0.05); padding:30px; border-radius:20px; cursor:pointer; text-align:center;" onclick="openTab('bgm_mgr')"><div style="font-size:2rem; margin-bottom:10px;">🎵</div>BGM</div>
         </div>`,
-        bgm_settings: () => `<h3>🎵 BGM SETTINGS</h3>
-            <div style="background:#2c2c2e; padding:20px; border-radius:15px;">
-                <p style="font-size:0.8rem; color:#8e8e93;">유튜브 주소를 입력하면 두 사람의 공간에 음악이 흐릅니다.</p>
-                <input id="bgm-url-in" placeholder="유튜브 주소 붙여넣기">
-                <button class="btn-action" onclick="saveBGM()">음악 적용하기</button>
-                <p style="margin-top:20px; font-size:0.8rem;">음량 조절</p>
-                <input type="range" style="width:100%; accent-color:var(--neon-green);" min="0" max="100" value="50" oninput="if(ytPlayer) ytPlayer.setVolume(this.value)">
-            </div>`,
-        profile: () => `<h3>👤 PROFILE</h3>
-            <div style="text-align:center;">
-                <div id="prof-preview" style="width:120px; height:120px; border-radius:20px; background:#444; margin:20px auto; background-size:cover; background-position:center; background-image:url('${userProfiles[currentUser] || ''}')"></div>
-                <input type="file" id="prof-input" accept="image/*" onchange="uploadProfile(this)" style="display:none">
-                <button class="btn-action" onclick="document.getElementById('prof-input').click()">이미지 변경</button>
+        profile: () => `<h3>👤 PROFILE SETTING</h3>
+            <div id="prof-preview" style="background-image:url('${userProfiles[currentUser] || ''}')"></div>
+            <input type="file" id="prof-in" accept="image/*" onchange="previewImg(this)" style="display:none">
+            <button class="btn-action" style="background:#444" onclick="document.getElementById('prof-in').click()">사진 선택</button>
+            <button class="btn-action" onclick="saveProfile()">프로필 저장하기</button>
+            <p style="font-size:0.8rem; color:#8e8e93; text-align:center; margin-top:15px;">저장 시 일기장 프사가 즉시 변경됩니다.</p>`,
+        library: () => `<h3>📚 VILLA ARCHIVE: LIBRARY</h3>
+            <div style="background:rgba(255,255,255,0.05); padding:25px; border-radius:20px; margin-bottom:25px; border:1px solid rgba(255,255,255,0.1);">
+                <input id="book-title" placeholder="도서 제목을 입력하세요" style="margin-bottom:10px;">
+                <button class="btn-action" onclick="addBook()">책장에 꽂기</button>
+            </div>
+            <div class="shelf" id="shelf-area"></div>`,
+        diary: () => `<div id="diary-chat"></div>
+            <div style="padding:20px; background:#fff; border-top:1px solid #eee; display:flex; gap:12px; align-items:center;">
+                <textarea id="d-in" placeholder="iMessage" style="background:#f1f1f2; color:#000; height:48px; flex:1; border:none; margin:0; padding:12px 20px; border-radius:24px; resize:none;"></textarea>
+                <button onclick="saveDiary()" style="width:48px; height:48px; background:var(--msg-blue); color:white; border:none; border-radius:50%; cursor:pointer; font-size:1.4rem; display:flex; align-items:center; justify-content:center;">↑</button>
             </div>`,
         calendar: () => `<h3>📅 CALENDAR</h3><div id="cal-render-area"></div>
-            <div id="cal-editor">
-                <p id="cal-edit-title" style="font-weight:bold; margin-bottom:10px;"></p>
-                <div class="emo-scroll-box">${[{e:"🏠", l:"집"}, {e:"🚗", l:"출근"}, {e:"🐟", l:"데이트"}, {e:"⭐", l:"일정"}, {e:"🍕", l:"외식"}, {e:"🎬", l:"영화"}, {e:"🍺", l:"술"}, {e:"🥰", l:"행복"}, {e:"😭", l:"우울"}].map(item => `<div class="emo-item" id="emo-${item.e}" onclick="selectEmo('${item.e}')"><span style="font-size:1.4rem;">${item.e}</span><br><small style="color:#666">${item.l}</small></div>`).join('')}</div>
-                <input id="cal-memo-in" style="background:white; color:black;" placeholder="간단한 메모">
-                <button class="btn-action" onclick="saveCal()">저장</button>
+            <div id="cal-editor" style="display:none; margin-top:25px; background:#f9f9f9; padding:25px; border-radius:20px; color:#333; border:1px solid #eee;">
+                <p id="cal-date-title" style="font-weight:700; margin-top:0;"></p>
+                <div class="emo-scroll-box">${[{e:"🏠", l:"집"}, {e:"🐟", l:"데이트"}, {e:"⭐", l:"중요"}, {e:"🎬", l:"영화"}, {e:"🍺", l:"술"}, {e:"😭", l:"우울"}, {e:"💡", l:"생각"}].map(item => `<div class="emo-item" id="emo-${item.e}" onclick="selectEmo('${item.e}')"><span style="font-size:1.5rem;">${item.e}</span><br><small style="color:#666;">${item.l}</small></div>`).join('')}</div>
+                <input id="cal-memo-in" placeholder="한 줄 메모..." style="background:#fff; color:#000; border:1.5px solid #ddd; margin-top:10px;">
+                <button class="btn-action" onclick="saveCal()">오늘의 기록 저장</button>
             </div>`,
-        diary: () => `<div class="diary-theme" style="height:100%; display:flex; flex-direction:column;">
-            <div id="diary-chat" style="flex:1; overflow-y:auto; padding:15px; min-height:400px;"></div>
-            <div style="padding:15px; border-top:1px solid #eee;">
-                <textarea id="d-in" style="background:#f2f2f7; color:#000; height:60px;" placeholder="오늘 어떤 일이 있었나요?"></textarea>
-                <button class="btn-action" onclick="saveDiary()">전송</button>
-            </div></div>`,
-        movie: () => `<h3>🎬 MOVIE</h3><input id="m-title" placeholder="제목"><button class="btn-action" onclick="addMovie()">추가</button><div id="movie-list" style="margin-top:15px;"></div>`,
-        gallery: () => `<h3>📸 PHOTO</h3><input type="file" id="g-file" accept="image/*"><button class="btn-action" onclick="uploadPhoto()">등록</button><div id="g-list" class="insta-grid" style="margin-top:15px;"></div>`,
-        wall: () => `<h3>🧱 WALL</h3><div id="wall-board">준비 중...</div>`,
-        library: () => `<h3>📚 LIBRARY</h3><div id="lib-shelf">준비 중...</div>`
+        bgm_mgr: () => `<h3>🎵 실시간 BGM 설정</h3><p style="color:#8e8e93; font-size:0.9rem;">유튜브 링크를 입력하면 빌라 전체의 배경음악이 변경됩니다.</p><input id="bgm-in" placeholder="https://www.youtube.com/watch?v=..."><button class="btn-action" onclick="saveBGM()">BGM 즉시 적용</button>`,
+        movie: () => `<h3>🎬 MOVIE LOG</h3><input id="m-in" placeholder="관람한 영화 제목"><button class="btn-action" onclick="addMovie()">리스트 추가</button><div id="m-list" style="margin-top:25px;"></div>`,
+        gallery: () => `<h3>📸 VILLA MOMENTS</h3><input type="file" id="g-in" accept="image/*" style="display:none" onchange="uploadPhoto(this)"><button class="btn-action" style="background:#444; margin-bottom:20px;" onclick="document.getElementById('g-in').click()">사진 업로드</button><div id="g-list" class="insta-grid"></div>`,
+        wall: () => `<h3>🧱 THE WALL</h3><p style="color:#8e8e93;">방명록 기능 업데이트 예정입니다.</p>`
     };
 
     function openTab(id) {
@@ -231,68 +286,167 @@
         id === 'diary' ? box.classList.add('diary-theme') : box.classList.remove('diary-theme');
         document.getElementById('modal-content').innerHTML = tabs[id]();
         document.getElementById('main-modal').style.display = 'flex';
-        if(id==='calendar') renderCalendar();
+        
+        // 초기화 함수 실행
+        if(id==='library') loadBooks();
+        if(id==='calendar') setTimeout(renderCalendar, 100);
         if(id==='diary') loadDiary();
         if(id==='movie') loadMovies();
         if(id==='gallery') loadGallery();
     }
     function closeModal() { document.getElementById('main-modal').style.display = 'none'; }
 
-    // --- 캘린더 연동 ---
+    // --- [FEATURE: LIBRARY (서재 고도화)] ---
+    const bookColors = ['#8c3b3b', '#3b5a8c', '#3b8c4a', '#8c7a3b', '#6d3b8c', '#3b8c85', '#2c2c2e', '#4a4a4a'];
+    function addBook() {
+        const title = document.getElementById('book-title').value;
+        if(!title) return;
+        const color = bookColors[Math.floor(Math.random()*bookColors.length)];
+        db.ref('library').push({ title, color, owner: currentUser, date: new Date().toLocaleDateString() });
+        document.getElementById('book-title').value = "";
+    }
+    function loadBooks() {
+        db.ref('library').on('value', s => {
+            const shelf = document.getElementById('shelf-area'); if(!shelf) return;
+            shelf.innerHTML = "";
+            const data = s.val();
+            if(data) Object.keys(data).forEach(key => {
+                const b = data[key];
+                const book = document.createElement('div');
+                book.className = 'book'; book.style.backgroundColor = b.color;
+                book.innerHTML = `<div class="book-title">${b.title}</div>`;
+                book.onclick = () => { if(confirm(`[${b.title}]\n등록자: ${b.owner}\n등록일: ${b.date}\n\n책장에서 삭제할까요?`)) db.ref('library/'+key).remove(); };
+                shelf.appendChild(book);
+            });
+        });
+    }
+
+    // --- [FEATURE: DIARY (아이메시지)] ---
+    function saveDiary() {
+        const t = document.getElementById('d-in').value; if(!t.trim()) return;
+        db.ref('diary_v2').push({ u: currentUser, t: t.trim(), ts: Date.now() });
+        document.getElementById('d-in').value = "";
+    }
+    function loadDiary() {
+        db.ref('diary_v2').on('value', s => {
+            const chat = document.getElementById('diary-chat'); if(!chat) return;
+            const data = s.val(); chat.innerHTML = "";
+            if(data) Object.keys(data).forEach(key => {
+                const i = data[key]; const isMine = i.u === currentUser;
+                chat.innerHTML += `
+                    <div class="diary-row" style="flex-direction:${isMine?'row-reverse':'row'}">
+                        <div class="profile-pic" style="background-image:url('${userProfiles[i.u] || ''}')"></div>
+                        <div class="bubble ${isMine?'mine':'yours'}" onclick="handleMsgDelete('${key}', '${i.u}')">
+                            ${i.t}
+                        </div>
+                    </div>`;
+            });
+            chat.scrollTop = chat.scrollHeight;
+        });
+    }
+    function handleMsgDelete(key, owner) {
+        if(owner === currentUser && confirm("이 메시지를 삭제할까요?")) db.ref('diary_v2/'+key).remove();
+    }
+
+    // --- [FEATURE: CALENDAR (이모지 & 렌더링 수정)] ---
     function renderCalendar() {
         const year = currentCalDate.getFullYear(), month = currentCalDate.getMonth();
-        const firstDay = new Date(year, month, 1).getDay(), daysInMonth = new Date(year, month + 1, 0).getDate();
-        db.ref('cal_v3').on('value', (snapshot) => {
-            const dbData = snapshot.val() || {};
-            let html = `<div class="cal-container"><div class="cal-header"><span onclick="moveMonth(-1)" style="cursor:pointer">◀</span><span>${year}년 ${month + 1}월</span><span onclick="moveMonth(1)" style="cursor:pointer">▶</span></div><div class="cal-grid">`;
-            ['일','월','화','수','목','금','토'].forEach(d => html += `<div class="cal-day-label">${d}</div>`);
-            for(let i=0; i<firstDay; i++) html += `<div class="cal-cell" style="background:#f9f9f9"></div>`;
-            for(let d=1; d<=daysInMonth; d++) {
-                const key = `${year}-${month+1}-${d}`, data = dbData[key] || { emo: '', memo: '' };
-                html += `<div class="cal-cell" onclick="editCal('${key}', ${d})"><div class="cal-date-num">${d}</div><div class="cal-content"><div class="cal-emo-disp">${data.emo || ''}</div><div class="cal-memo-disp">${data.memo || ''}</div></div></div>`;
+        const days = new Date(year, month + 1, 0).getDate();
+        const startDay = new Date(year, month, 1).getDay();
+        db.ref('cal_v3').on('value', s => {
+            const data = s.val() || {};
+            let html = `<div class="cal-container"><div class="cal-header"><span onclick="moveMonth(-1)" style="cursor:pointer; padding:10px;">◀</span><span>${year}년 ${month+1}월</span><span onclick="moveMonth(1)" style="cursor:pointer; padding:10px;">▶</span></div><div class="cal-grid">`;
+            ['일','월','화','수','목','금','토'].forEach(d => html += `<div style="text-align:center; padding:12px; font-size:0.85rem; font-weight:bold; color:#888;">${d}</div>`);
+            for(let i=0; i<startDay; i++) html += `<div class="cal-cell" style="background:#fcfcfc"></div>`;
+            for(let d=1; d<=days; d++) {
+                const key = `${year}-${month+1}-${d}`;
+                html += `<div class="cal-cell" onclick="editCal('${key}', ${d})">
+                    <div style="font-size:0.85rem; font-weight:600;">${d}</div>
+                    <div style="font-size:1.8rem; text-align:center; margin-top:5px;">${data[key]?.emo || ''}</div>
+                    <div style="font-size:0.7rem; color:#888; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${data[key]?.memo || ''}</div>
+                </div>`;
             }
             document.getElementById('cal-render-area').innerHTML = html + `</div></div>`;
         });
     }
-    function moveMonth(dir) { currentCalDate.setMonth(currentCalDate.getMonth() + dir); renderCalendar(); }
-    function editCal(key, d) { 
-        selectedCalKey = key; 
-        document.getElementById('cal-editor').style.display = 'block'; 
-        document.getElementById('cal-edit-title').innerText = d + "일의 기록"; 
-        db.ref(`cal_v3/${key}`).once('value', (s) => {
-            const cur = s.val() || { emo: '🏠', memo: '' };
-            document.getElementById('cal-memo-in').value = cur.memo;
-            selectEmo(cur.emo || '🏠');
+    function moveMonth(n) { currentCalDate.setMonth(currentCalDate.getMonth() + n); renderCalendar(); }
+    function editCal(key, d) {
+        selectedCalKey = key; document.getElementById('cal-editor').style.display = 'block';
+        document.getElementById('cal-date-title').innerText = d + "일의 무드와 메모";
+        db.ref('cal_v3/'+key).once('value', s => { 
+            const v = s.val() || {emo:'🏠', memo:''}; 
+            selectEmo(v.emo); document.getElementById('cal-memo-in').value = v.memo; 
         });
     }
-    function selectEmo(e) { selectedEmo = e; document.querySelectorAll('.emo-item').forEach(el => el.classList.remove('active')); const target = document.getElementById('emo-'+e); if(target) target.classList.add('active'); }
-    function saveCal() { db.ref(`cal_v3/${selectedCalKey}`).set({ emo: selectedEmo, memo: document.getElementById('cal-memo-in').value }).then(() => document.getElementById('cal-editor').style.display='none'); }
+    function selectEmo(e) { 
+        selectedEmo = e; 
+        document.querySelectorAll('.emo-item').forEach(el => el.classList.remove('active')); 
+        const activeItem = document.getElementById('emo-'+e);
+        if(activeItem) activeItem.classList.add('active'); 
+    }
+    function saveCal() { 
+        db.ref('cal_v3/'+selectedCalKey).set({ 
+            emo: selectedEmo, 
+            memo: document.getElementById('cal-memo-in').value 
+        }).then(() => {
+            alert("저장되었습니다.");
+            document.getElementById('cal-editor').style.display = 'none';
+        }); 
+    }
 
-    // --- 프로필 & 다이어리 & 기타 ---
-    function uploadProfile(input) {
-        const reader = new FileReader();
-        reader.onload = (e) => db.ref('profiles/' + currentUser).set(e.target.result);
-        reader.readAsDataURL(input.files[0]);
+    // --- [FEATURE: PROFILE & BGM (요청 핵심)] ---
+    function previewImg(i) { 
+        if(i.files && i.files[0]) { 
+            const r = new FileReader(); 
+            r.onload = e => { 
+                document.getElementById('prof-preview').style.backgroundImage = `url('${e.target.result}')`; 
+                tempImgData = e.target.result; 
+            }; 
+            r.readAsDataURL(i.files[0]); 
+        } 
     }
-    function saveDiary() {
-        const t = document.getElementById('d-in').value; if(!t) return;
-        db.ref('diary_v2').push({ u: currentUser, t: t, d: new Date().toLocaleDateString() });
-        document.getElementById('d-in').value="";
+    function saveProfile() { 
+        if(!tempImgData) return alert("변경할 사진을 선택해주세요."); 
+        db.ref('profiles/'+currentUser).set(tempImgData).then(() => alert("프로필 사진이 저장되었습니다.")); 
     }
-    function loadDiary() {
-        db.ref('diary_v2').on('value', (s) => {
-            const list = s.val() ? Object.values(s.val()) : [];
-            const chat = document.getElementById('diary-chat');
-            if(chat) {
-                chat.innerHTML = list.map(i => `<div class="diary-row" style="flex-direction:${i.u===currentUser?'row-reverse':'row'}"><div class="profile-pic" style="background-image:url('${userProfiles[i.u] || ''}')"></div><div class="bubble ${i.u===currentUser?'mine':'yours'}">${i.t}</div></div>`).join('');
-                chat.scrollTop = chat.scrollHeight;
-            }
-        });
+    
+    function loadBGM() { 
+        db.ref('settings/bgm').on('value', s => { 
+            const id = s.val(); 
+            if(id) document.getElementById('bgm-player').innerHTML = `<iframe width="0" height="0" src="https://www.youtube.com/embed/${id}?autoplay=1&loop=1&playlist=${id}" frameborder="0" allow="autoplay"></iframe>`; 
+        }); 
     }
-    function addMovie() { const t = document.getElementById('m-title').value; if(t) db.ref('movie_v2').push({ t }); document.getElementById('m-title').value=""; }
-    function loadMovies() { db.ref('movie_v2').on('value', (s) => { const list = s.val() ? Object.values(s.val()).reverse() : []; document.getElementById('movie-list').innerHTML = list.map(m => `<div style="background:#2c2c2e; padding:10px; border-radius:10px; margin-bottom:8px;">${m.t}</div>`).join(''); }); }
-    function uploadPhoto() { const f = document.getElementById('g-file').files[0]; if(f) { const r = new FileReader(); r.onload = (e) => db.ref('gallery_v2').push({ img: e.target.result }); r.readAsDataURL(f); } }
-    function loadGallery() { db.ref('gallery_v2').on('value', (s) => { const list = s.val() ? Object.values(s.val()).reverse() : []; document.getElementById('g-list').innerHTML = list.map(p => `<div class="insta-item" style="background-image:url('${p.img}')"></div>`).join(''); }); }
+    function saveBGM() { 
+        let v = document.getElementById('bgm-in').value; 
+        let id = v.includes('v=') ? v.split('v=')[1].split('&')[0] : (v.includes('youtu.be/') ? v.split('youtu.be/')[1].split('?')[0] : v); 
+        db.ref('settings/bgm').set(id).then(() => { alert("배경음악이 변경되었습니다."); document.getElementById('bgm-in').value=""; }); 
+    }
+
+    // --- [FEATURE: MOVIE & GALLERY] ---
+    function addMovie() { 
+        const t = document.getElementById('m-in').value; if(!t) return;
+        db.ref('movie_v2').push({ t, u: currentUser }); document.getElementById('m-in').value=""; 
+    }
+    function loadMovies() { 
+        db.ref('movie_v2').on('value', s => { 
+            const d = s.val(); 
+            document.getElementById('m-list').innerHTML = d ? Object.values(d).reverse().map(i => `<div style="padding:15px; background:rgba(255,255,255,0.05); margin-bottom:10px; border-radius:12px; font-size:0.95rem;">🎬 ${i.t} <small style="color:#666; float:right;">by ${i.u}</small></div>`).join('') : ""; 
+        }); 
+    }
+    function uploadPhoto(input) { 
+        const f = input.files[0]; 
+        if(f) { 
+            const r = new FileReader(); 
+            r.onload = e => db.ref('gallery_v2').push({ img: e.target.result, u: currentUser }); 
+            r.readAsDataURL(f); 
+        } 
+    }
+    function loadGallery() { 
+        db.ref('gallery_v2').on('value', s => { 
+            const d = s.val(); 
+            document.getElementById('g-list').innerHTML = d ? Object.keys(d).reverse().map(k => `<div class="insta-item" style="background-image:url('${d[k].img}')" onclick="if(confirm('이 사진을 갤러리에서 삭제할까요?')) db.ref('gallery_v2/${k}').remove()"></div>`).join('') : ""; 
+        }); 
+    }
 </script>
 </body>
 </html>
