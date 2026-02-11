@@ -170,7 +170,7 @@
         <div id="pw-disp" style="font-size: 2.8rem; color: var(--neon-red); margin-bottom: 30px; height: 60px; font-family: 'Courier New', Courier, monospace; letter-spacing: 8px;">----</div>
         <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px;">
             <script>for(let i=1; i<=9; i++) document.write(`<div style="padding:22px; background:rgba(255,255,255,0.05); border-radius:15px; cursor:pointer; font-size:1.2rem;" onclick="pressKey('${i}')">${i}</div>`);</script>
-            <div style="padding:22px; background:rgba(255,255,255,0.05); border-radius:15px; cursor:pointer;" onclick="inputPw=''">C</div>
+            <div style="padding:22px; background:rgba(255,255,255,0.05); border-radius:15px; cursor:pointer;" onclick="inputPw=''; updatePwDisp();">C</div>
             <div style="padding:22px; background:rgba(255,255,255,0.05); border-radius:15px; cursor:pointer;" onclick="pressKey('0')">0</div>
             <div style="padding:22px; background:var(--neon-red); border-radius:15px; cursor:pointer;" onclick="checkPw()">E</div>
         </div>
@@ -228,10 +228,8 @@
             document.getElementById('sitemap-btn').style.display='flex';
             document.getElementById('active-user').innerText = currentUser;
             
-            // 프로필 실시간 로드
             db.ref('profiles').on('value', s => { 
                 userProfiles = s.val() || {}; 
-                // 현재 열린 프로필 창이 있다면 갱신
                 const preview = document.getElementById('prof-preview');
                 if(preview) preview.style.backgroundImage = `url('${userProfiles[currentUser] || ''}')`;
             });
@@ -241,7 +239,23 @@
     }
 
     function exitRoom() { if(confirm("로그아웃 하시겠습니까?")) location.reload(); }
-    function handleGlobalKey(e) { if (e.key === "Escape") closeModal(); }
+
+    function handleGlobalKey(e) { 
+        // 1. 모달 닫기 (Esc)
+        if (e.key === "Escape") closeModal(); 
+
+        // 2. 입장 페이지 키보드 입력 로직 (추가된 부분)
+        if (document.getElementById('entry-page').style.display !== 'none') {
+            if (e.key >= "0" && e.key <= "9") {
+                pressKey(e.key);
+            } else if (e.key === "Enter") {
+                checkPw();
+            } else if (e.key === "Backspace" || e.key === "c" || e.key === "C") {
+                inputPw = ""; 
+                updatePwDisp();
+            }
+        }
+    }
 
     // --- [TAB CONTENTS & RENDERERS] ---
     const tabs = {
