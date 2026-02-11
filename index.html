@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Villa 302: Final Archive</title>
+    <title>Villa 302: Ultimate Archive</title>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -12,21 +12,20 @@
         :root { --neon-red: #ff3131; --neon-green: #39ff14; --msg-blue: #007aff; --msg-gray: #e9e9eb; --apple-bg: #1c1c1e; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; overflow: hidden; font-family: -apple-system, sans-serif; }
         
-        /* [1] 입장 화면 - 클릭 차단 방지를 위해 z-index 최상위 */
+        /* 입장 화면 */
         #entry-page { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: url('villa interior.png') no-repeat center center/cover; z-index: 999999; display: flex; justify-content: center; align-items: center; }
-        .lock-box { background: rgba(0,0,0,0.95); backdrop-filter: blur(25px); padding: 40px; border-radius: 35px; border: 2px solid rgba(255,255,255,0.1); width: 320px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
-        .user-sel-btn { flex: 1; padding: 15px; background: #111; color: white; border: 2px solid #333; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .lock-box { background: rgba(0,0,0,0.95); backdrop-filter: blur(25px); padding: 40px; border-radius: 35px; border: 2px solid rgba(255,255,255,0.1); width: 320px; text-align: center; }
+        .user-sel-btn { flex: 1; padding: 15px; background: #111; color: white; border: 2px solid #333; border-radius: 12px; cursor: pointer; font-weight: bold; }
         .user-sel-btn.active { border-color: var(--neon-green); color: var(--neon-green); background: rgba(57,255,20,0.2); }
-        
-        #pw-disp { font-size: 3rem; color: var(--neon-red); margin-bottom: 25px; height: 60px; letter-spacing: 12px; display: flex; justify-content: center; align-items: center; text-shadow: 0 0 15px var(--neon-red); font-family: 'Courier New', monospace; }
-        
+        #pw-disp { font-size: 3rem; color: var(--neon-red); margin-bottom: 25px; height: 60px; letter-spacing: 12px; display: flex; justify-content: center; align-items: center; text-shadow: 0 0 15px var(--neon-red); }
         .key-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .key { padding: 22px; background: rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; font-size: 1.5rem; transition: 0.1s; user-select: none; }
-        .key:active { background: rgba(255,255,255,0.3); transform: scale(0.95); }
+        .key:active { background: rgba(255,255,255,0.3); }
 
-        /* [2] 메인 스테이지 */
+        /* 메인 스테이지 */
         #stage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100vw; height: 66.67vw; max-width: 150vh; max-height: 100vh; background: url('villa.png') no-repeat center center/contain; background-color: #000; z-index: 100; }
         .target { position: absolute; cursor: pointer; z-index: 110; }
+        /* 클릭 영역 설정 */
         .wall-pos { top: 18%; left: 50%; width: 15%; height: 35%; } 
         .movie-pos { top: 8%; left: 63%; width: 20%; height: 15%; } 
         .cal-pos { top: 45%; left: 74%; width: 8%; height: 20%; } 
@@ -34,34 +33,30 @@
         .photo-pos { top: 25%; left: 72%; width: 10%; height: 20%; } 
         .lib-pos { top: 35%; left: 35%; width: 12%; height: 25%; } 
 
-        /* [3] 모달 시스템 */
+        /* 모달 시스템 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; justify-content: center; align-items: center; }
         .modal-inner { background: var(--apple-bg); width: 92%; max-width: 800px; height: 85vh; border-radius: 30px; padding: 30px; overflow-y: auto; position: relative; border: 1px solid #333; }
-        .close-btn { position: absolute; top: 20px; right: 30px; font-size: 2.5rem; color: #888; cursor: pointer; }
+        .close-btn { position: absolute; top: 20px; right: 30px; font-size: 2.5rem; color: #888; cursor: pointer; z-index: 101; }
 
-        /* 일기장/캘린더/영화 스타일 보존 */
+        /* 디자인 요소 */
         .diary-theme { background: #fff !important; color: #000 !important; }
         #diary-chat { height: calc(100% - 160px); overflow-y: auto; padding: 15px; display: flex; flex-direction: column; }
-        .diary-row { display: flex; flex-direction: column; margin-bottom: 15px; }
-        .msg-container { display: flex; align-items: flex-end; }
-        .profile-img { width: 35px; height: 35px; border-radius: 50%; background-size: cover; background-position: center; margin: 0 10px; background-color: #eee; flex-shrink: 0; }
+        .msg-container { display: flex; align-items: flex-end; margin-bottom: 15px; }
         .bubble { max-width: 65%; padding: 12px 16px; border-radius: 20px; font-size: 0.95rem; cursor: pointer; }
         .bubble.mine { background: var(--msg-blue); color: #fff; border-bottom-right-radius: 4px; }
         .bubble.yours { background: var(--msg-gray); color: #000; border-bottom-left-radius: 4px; }
-        .comment-area { font-size: 0.8rem; color: #888; margin-top: 4px; padding-left: 55px; cursor: pointer; font-style: italic; }
+        .profile-img { width: 35px; height: 35px; border-radius: 50%; background-size: cover; margin: 0 10px; background-color: #eee; }
         .cal-table { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #444; }
         .cal-day { background: #fff; color: #000; min-height: 80px; padding: 5px; cursor: pointer; font-weight: bold; }
         .cal-day.today { background: #fffde7; border: 2px solid var(--neon-green); }
-        .mv-card { background: #2c2c2e; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 5px solid var(--neon-red); }
 
-        input, textarea, select { width: 100%; padding: 14px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 12px; margin-bottom: 10px; box-sizing: border-box; }
+        input, textarea { width: 100%; padding: 14px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 12px; margin-bottom: 10px; box-sizing: border-box; }
         .btn-send { background: var(--msg-blue); color: white; border: none; padding: 15px; border-radius: 12px; width: 100%; cursor: pointer; font-weight: bold; }
         #sitemap-btn { position: fixed; top: 25px; left: 25px; z-index: 1100; cursor: pointer; background: rgba(255,255,255,0.1); width: 50px; height: 50px; border-radius: 12px; display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
     </style>
 </head>
 <body>
 
-<div id="bgm-player" style="position:fixed; top:-5000px;"><div id="player"></div></div>
 <div id="sitemap-btn" onclick="openTab('sitemap')">☰</div>
 
 <div id="entry-page">
@@ -78,7 +73,6 @@
             <div class="key" onclick="press('0')">0</div>
             <div class="key" style="background:var(--neon-red)" onclick="checkPw()">E</div>
         </div>
-        <p style="color:#666; font-size:0.8rem; margin-top:15px;">키보드 숫자키 입력 가능</p>
     </div>
 </div>
 
@@ -99,6 +93,7 @@
 </div>
 
 <script>
+    // --- [Firebase 설정] ---
     const firebaseConfig = {
         apiKey: "AIzaSyDLTGv4Z3zJUseuKw1acvHHwPzooZhXodc",
         databaseURL: "https://villa302-default-rtdb.firebaseio.com",
@@ -110,93 +105,97 @@
 
     let currentUser = "", targetPw = "", inputPw = "", userProfiles = {};
 
-    // --- [도어락 & 키보드 로직] ---
-    function selU(u,p) { 
-        currentUser=u; targetPw=p; inputPw=""; 
-        document.querySelectorAll('.user-sel-btn').forEach(b=>b.classList.remove('active')); 
-        document.getElementById('b-'+u).classList.add('active'); 
-        updatePw(); 
-    }
-    
-    function press(n) { if(currentUser==="") {alert("사용자를 선택하세요."); return;} if(inputPw.length<4) inputPw+=n; updatePw(); }
+    // --- [인증 및 도어락] ---
+    function selU(u,p) { currentUser=u; targetPw=p; inputPw=""; document.querySelectorAll('.user-sel-btn').forEach(b=>b.classList.remove('active')); document.getElementById('b-'+u).classList.add('active'); updatePw(); }
+    function press(n) { if(!currentUser) return; if(inputPw.length<4) inputPw+=n; updatePw(); }
     function updatePw() { document.getElementById('pw-disp').innerText = "*".repeat(inputPw.length).padEnd(4, "-"); }
-    
-    function checkPw() { 
-        if(inputPw === targetPw) { 
-            document.getElementById('entry-page').style.display='none'; 
-            document.getElementById('sitemap-btn').style.display='flex'; 
+    function checkPw() {
+        if(inputPw === targetPw) {
+            document.getElementById('entry-page').style.display='none';
+            document.getElementById('sitemap-btn').style.display='flex';
+            // 입장 성공 시 프로필 데이터 미리 로드
             db.ref('profiles').on('value', s => userProfiles = s.val()||{});
-        } else { 
-            alert("비밀번호가 틀렸습니다."); inputPw=""; updatePw(); 
-        } 
+        } else { alert("비밀번호 오류"); inputPw=""; updatePw(); }
     }
 
-    // 키보드 이벤트 리스너 추가
+    // 키보드 지원
     window.addEventListener('keydown', (e) => {
         if(document.getElementById('entry-page').style.display !== 'none') {
             if(e.key >= '0' && e.key <= '9') press(e.key);
             if(e.key === 'Enter') checkPw();
-            if(e.key === 'Backspace') { inputPw = inputPw.slice(0, -1); updatePw(); }
-            if(e.key === 'Escape') { inputPw = ""; updatePw(); }
+            if(e.key === 'Backspace') { inputPw = inputPw.slice(0,-1); updatePw(); }
         }
     });
 
-    // --- [나머지 모든 기능 로직 보존] ---
-    
-    // 캘린더 (2026년 2월 기준)
+    // --- [탭 열기 및 데이터 로드 Trigger] ---
+    function openTab(id) {
+        const box = document.getElementById('modal-box');
+        const content = document.getElementById('modal-content');
+        box.className = (id === 'diary' ? 'modal-inner diary-theme' : 'modal-inner');
+        document.getElementById('main-modal').style.display = 'flex';
+
+        if(id === 'calendar') {
+            content.innerHTML = `<h3 id="cal-title"></h3><div id="cal-list" class="cal-table"></div>`;
+            renderCal(); // <--- 여기서 함수를 실행해야 데이터가 뜹니다!
+        } else if(id === 'diary') {
+            content.innerHTML = `<h3>📔 DIARY</h3><div id="diary-chat"></div><div style="display:flex; gap:10px;"><textarea id="dy-in" placeholder="메시지..."></textarea><button class="btn-send" style="width:80px;" onclick="addDy()">↑</button></div>`;
+            renderDy(); // <--- 여기서 함수 실행!
+        } else if(id === 'wall') {
+            content.innerHTML = `<h3>🧱 THE WALL</h3><textarea id="wl-in"></textarea><button class="btn-send" onclick="addWl()">붙이기</button><div id="wl-list" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;"></div>`;
+            renderWl();
+        } else if(id === 'movie') {
+            content.innerHTML = `<h3>🎬 MOVIE</h3><input id="mv-t" placeholder="제목"><textarea id="mv-r"></textarea><button class="btn-send" onclick="addMv()">저장</button><div id="mv-list" style="margin-top:20px;"></div>`;
+            renderMv();
+        } else if(id === 'gallery') {
+            content.innerHTML = `<h3>📸 GALLERY</h3><input type="file" onchange="addGal(this)"><div id="gal-list" style="margin-top:20px;"></div>`;
+            renderGal();
+        } else if(id === 'profile') {
+            content.innerHTML = `<h3>👤 PROFILE</h3><input type="file" onchange="savePf(this)">`;
+        } else if(id === 'sitemap') {
+            content.innerHTML = `<h3>SITEMAP</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">${['diary','wall','gallery','movie','calendar','library','profile'].map(t=>`<button class="btn-send" style="background:#333;" onclick="openTab('${t}')">${t.toUpperCase()}</button>`).join('')}</div>`;
+        }
+    }
+
+    // --- [실제 로직 함수들] ---
     function renderCal() {
-        const now = new Date(); const y = now.getFullYear(); const m = now.getMonth(); const td = now.getDate();
-        const fDay = new Date(y, m, 1).getDay(); const lDate = new Date(y, m + 1, 0).getDate();
-        db.ref(`cal_vfinal/${y}_${m+1}`).on('value', s => {
+        const now = new Date(); const y = 2026, m = 2; // 요청하신 26년 2월 고정
+        const fDay = new Date(y, m-1, 1).getDay(); const lDate = new Date(y, m, 0).getDate();
+        db.ref(`cal_final/${y}_${m}`).on('value', s => {
             const data = s.val() || {}; let h = "";
-            for(let i=0; i<fDay; i++) h += `<div class="cal-day" style="background:#f0f0f0;"></div>`;
+            for(let i=0; i<fDay; i++) h += `<div class="cal-day" style="background:#eee;"></div>`;
             for(let i=1; i<=lDate; i++) {
-                const isT = (i === td) ? "today" : "";
-                h += `<div class="cal-day ${isT}" onclick="setCal('${y}_${m+1}_${i}')">${i}<div style="font-size:1.8rem; text-align:center;">${data[i]||''}</div></div>`;
+                h += `<div class="cal-day" onclick="setCal('${y}_${m}_${i}')">${i}<div style="font-size:1.5rem; text-align:center;">${data[i]||''}</div></div>`;
             }
             document.getElementById('cal-list').innerHTML = h;
-            document.getElementById('cal-title').innerText = `${y}년 ${m+1}월`;
+            document.getElementById('cal-title').innerText = `${y}년 ${m}월`;
         });
     }
-    function setCal(k) { const emo = prompt("오늘의 이모지:"); if(emo) { const [y,m,d] = k.split('_'); db.ref(`cal_vfinal/${y}_${m}/${d}`).set(emo); } }
+    function setCal(k) { const e = prompt("이모지 입력:"); if(e) { const [y,m,d] = k.split('_'); db.ref(`cal_final/${y}_${m}/${d}`).set(e); } }
 
-    // 일기장 (수정/삭제/댓글)
-    function addDy() { const t = document.getElementById('dy-in').value; if(t) db.ref('dy_vfinal').push({ t, u: currentUser, ts: Date.now() }); document.getElementById('dy-in').value=""; }
     function renderDy() {
-        db.ref('dy_vfinal').on('value', s => {
+        db.ref('dy_final').on('value', s => {
             const d = s.val(); const div = document.getElementById('diary-chat'); if(!div || !d) return;
             div.innerHTML = Object.keys(d).map(k => {
                 const isM = d[k].u === currentUser;
-                return `<div class="diary-row"><div class="msg-container" style="flex-direction:${isM?'row-reverse':'row'}"><div class="profile-img" style="background-image:url('${userProfiles[d[k].u]||''}')"></div><div class="bubble ${isM?'mine':'yours'}" onclick="manageDy('${k}','${d[k].u}','${d[k].t}')">${d[k].t}</div></div><div class="comment-area" onclick="addCmt('${k}')">${d[k].cmt ? '💬 '+d[k].cmt : '댓글 달기...'}</div></div>`;
+                return `<div class="msg-container" style="flex-direction:${isM?'row-reverse':'row'}">
+                    <div class="profile-img" style="background-image:url('${userProfiles[d[k].u]||''}')"></div>
+                    <div class="bubble ${isM?'mine':'yours'}" onclick="manageDy('${k}','${d[k].u}','${d[k].t}')">${d[k].t}</div>
+                    <div style="font-size:0.7rem; color:#888; margin:0 5px;" onclick="addCmt('${k}')">${d[k].cmt ? '💬' : '+'}</div>
+                </div>${d[k].cmt ? `<div style="font-size:0.8rem; color:#888; margin-bottom:10px; text-align:${isM?'right':'left'}; padding:0 50px;">${d[k].cmt}</div>` : ''}`;
             }).join('');
             div.scrollTop = div.scrollHeight;
         });
     }
-    function manageDy(k,u,old) { if(u!==currentUser) return; const a=prompt("'수정' 또는 '삭제'"); if(a==='수정'){const nt=prompt("수정:",old); if(nt) db.ref(`dy_vfinal/${k}`).update({t:nt});} else if(a==='삭제') db.ref(`dy_vfinal/${k}`).remove(); }
-    function addCmt(k) { const c=prompt("댓글:"); if(c) db.ref(`dy_vfinal/${k}`).update({cmt:c}); }
+    function addDy() { const t = document.getElementById('dy-in').value; if(t) db.ref('dy_final').push({ t, u: currentUser }); document.getElementById('dy-in').value=""; }
+    function manageDy(k,u,old) { if(u!==currentUser) return; const a=prompt("'수정'/'삭제'"); if(a==='수정'){const nt=prompt("내용:",old); if(nt) db.ref(`dy_final/${k}`).update({t:nt});} else if(a==='삭제') db.ref(`dy_final/${k}`).remove(); }
+    function addCmt(k) { const c=prompt("댓글:"); if(c) db.ref(`dy_final/${k}`).update({cmt:c}); }
 
-    function openTab(id) {
-        const box = document.getElementById('modal-box'); const content = document.getElementById('modal-content');
-        box.className = (id === 'diary' ? 'modal-inner diary-theme' : 'modal-inner');
-        document.getElementById('main-modal').style.display = 'flex';
-        if(id === 'calendar') { content.innerHTML = `<h3 id="cal-title"></h3><div id="cal-list" class="cal-table"></div>`; renderCal(); }
-        else if(id === 'diary') { content.innerHTML = `<h3>📔 DIARY</h3><div id="diary-chat"></div><div style="display:flex; gap:10px;"><textarea id="dy-in" placeholder="메시지..."></textarea><button class="btn-send" style="width:80px;" onclick="addDy()">↑</button></div>`; renderDy(); }
-        else if(id === 'wall') { content.innerHTML = `<h3>🧱 THE WALL</h3><textarea id="wl-in"></textarea><button class="btn-send" onclick="addWl()">붙이기</button><div id="wl-list" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;"></div>`; renderWl(); }
-        else if(id === 'movie') { content.innerHTML = `<h3>🎬 MOVIE</h3><input id="mv-t" placeholder="제목"><textarea id="mv-r"></textarea><button class="btn-send" onclick="addMv()">저장</button><div id="mv-list" style="margin-top:20px;"></div>`; renderMv(); }
-        else if(id === 'library') { content.innerHTML = `<h3>📚 LIBRARY</h3><input id="bk-t" placeholder="도서명"><button class="btn-send" onclick="addBk()">등록</button><div id="bk-list" style="margin-top:20px;"></div>`; renderBk(); }
-        else if(id === 'gallery') { content.innerHTML = `<h3>📸 GALLERY</h3><input type="file" onchange="addGal(this)"><div id="gal-list" style="margin-top:20px;"></div>`; renderGal(); }
-        else if(id === 'profile') { content.innerHTML = `<h3>👤 PROFILE</h3><input type="file" onchange="savePf(this)">`; }
-        else if(id === 'sitemap') { content.innerHTML = `<h3>SITEMAP</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">${['diary','wall','gallery','movie','calendar','library','profile'].map(t=>`<button class="btn-send" style="background:#333;" onclick="openTab('${t}')">${t.toUpperCase()}</button>`).join('')}</div>`; }
-    }
-
-    function addWl() { const t=document.getElementById('wl-in').value; if(t) db.ref('wl_vfinal').push({t, u:currentUser}); }
-    function renderWl() { db.ref('wl_vfinal').on('value', s=>{ const d=s.val(); document.getElementById('wl-list').innerHTML=Object.keys(d||{}).map(k=>`<div style="background:#fff9c4; color:#333; padding:15px; width:120px; position:relative;">${d[k].t}<span onclick="db.ref('wl_vfinal/${k}').remove()" style="position:absolute; top:2px; right:5px; cursor:pointer;">×</span></div>`).join(''); }); }
-    function addMv() { const t=document.getElementById('mv-t').value, r=document.getElementById('mv-r').value; if(t) db.ref('mv_vfinal').push({t, r, u:currentUser}); }
-    function renderMv() { db.ref('mv_vfinal').on('value', s=>{ const d=s.val(); document.getElementById('mv-list').innerHTML=Object.keys(d||{}).map(k=>`<div class="mv-card"><b>${d[k].t}</b><p>${d[k].r}</p><small>${d[k].u}</small></div>`).join(''); }); }
-    function addBk() { const t=document.getElementById('bk-t').value; if(t) db.ref('bk_vfinal').push({t, u:currentUser}); }
-    function renderBk() { db.ref('bk_vfinal').on('value', s=>{ const d=s.val(); document.getElementById('bk-list').innerHTML=Object.keys(d||{}).map(k=>`<div style="padding:10px; background:#333; margin-bottom:5px;">📖 ${d[k].t} (${d[k].u})</div>`).join(''); }); }
-    function addGal(i) { if(i.files[0]) { const r=new FileReader(); r.onload=e=>db.ref('gal_vfinal').push({img:e.target.result, u:currentUser}); r.readAsDataURL(i.files[0]); } }
-    function renderGal() { db.ref('gal_vfinal').on('value', s=>{ const d=s.val(); document.getElementById('gal-list').innerHTML=Object.keys(d||{}).map(k=>`<div style="margin-bottom:20px; border:1px solid #333;"><img src="${d[k].img}" style="width:100%"><p style="padding:10px;">By ${d[k].u}</p></div>`).join(''); }); }
+    function addWl() { const t=document.getElementById('wl-in').value; if(t) db.ref('wl_final').push({t, u:currentUser}); }
+    function renderWl() { db.ref('wl_final').on('value', s=>{ const d=s.val(); document.getElementById('wl-list').innerHTML=Object.keys(d||{}).map(k=>`<div style="background:#fff9c4; color:#333; padding:10px; width:100px; position:relative;">${d[k].t}<span onclick="db.ref('wl_final/${k}').remove()" style="position:absolute; top:2px; right:5px; cursor:pointer;">×</span></div>`).join(''); }); }
+    function addMv() { const t=document.getElementById('mv-t').value, r=document.getElementById('mv-r').value; if(t) db.ref('mv_final').push({t, r, u:currentUser}); }
+    function renderMv() { db.ref('mv_final').on('value', s=>{ const d=s.val(); document.getElementById('mv-list').innerHTML=Object.keys(d||{}).map(k=>`<div style="background:#333; padding:10px; margin-bottom:10px;"><b>${d[k].t}</b><p>${d[k].r}</p></div>`).join(''); }); }
+    function addGal(i) { if(i.files[0]) { const r=new FileReader(); r.onload=e=>db.ref('gal_final').push({img:e.target.result, u:currentUser}); r.readAsDataURL(i.files[0]); } }
+    function renderGal() { db.ref('gal_final').on('value', s=>{ const d=s.val(); document.getElementById('gal-list').innerHTML=Object.keys(d||{}).map(k=>`<img src="${d[k].img}" style="width:100%; margin-bottom:10px;">`).join(''); }); }
     function savePf(i) { if(i.files[0]) { const r=new FileReader(); r.onload=e=>db.ref('profiles/'+currentUser).set(e.target.result).then(()=>alert("저장완료")); r.readAsDataURL(i.files[0]); } }
     function closeModal() { document.getElementById('main-modal').style.display='none'; }
 </script>
