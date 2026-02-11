@@ -18,9 +18,9 @@
 
         #sitemap-btn { position: fixed; top: 25px; left: 25px; width: 50px; height: 50px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; cursor: pointer; z-index: 1100; border-radius: 12px; display: none; align-items: center; justify-content: center; font-size: 1.2rem; }
         
-        /* 프로필 사진 연동을 위한 상단 바 수정 */
+        /* 프로필 연동을 위한 상단 바 (구조 유지) */
         #user-indicator { position: fixed; top: 25px; right: 25px; display: none; align-items: center; gap: 12px; background: rgba(0,0,0,0.85); padding: 8px 20px; border: 2px solid var(--neon-green); border-radius: 50px; z-index: 1000; cursor: pointer; }
-        #indicator-pic { width: 32px; height: 32px; border-radius: 50%; background-size: cover; background-position: center; background-color: #333; border: 1px solid rgba(57,255,20,0.3); }
+        #indicator-pic { width: 32px; height: 32px; border-radius: 50%; background-size: cover; background-position: center; background-color: #333; }
 
         .target { position: absolute; cursor: pointer; z-index: 10; }
         .wall-pos { top: 18%; left: 50%; width: 15%; height: 35%; } 
@@ -71,7 +71,6 @@
         .cal-cell:hover { background: #f0f7ff; }
         .cal-cell.selected { border: 2px solid var(--msg-blue); z-index: 10; }
         .cal-date-num { font-size: 0.8rem; font-weight: bold; color: #999; }
-        .cal-cell.today { background: #fffde7; }
         .cal-content { margin-top: 5px; text-align: center; }
         .cal-memo { font-size: 0.7rem; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.2; }
 
@@ -147,7 +146,7 @@
     let selectedCalKey = "";
     let selectedEmo = "🏠";
     let userProfiles = {}; 
-    let ytPlayer; // 유튜브 플레이어 객체
+    let ytPlayer; 
 
     function handleGlobalKey(e) { 
         if (e.key === "Escape") closeModal(); 
@@ -177,6 +176,7 @@
     }
     function exitRoom() { if(confirm("로그아웃 하시겠습니까?")) location.reload(); }
 
+    // [프로필 실시간 연동]
     function syncProfiles() {
         db.ref('profiles').on('value', (snapshot) => {
             userProfiles = snapshot.val() || {};
@@ -186,13 +186,24 @@
         });
     }
 
-    // 유튜브 API 로드 완료 시 자동 호출
+    // [BGM 로직 - 유튜브 API]
     function onYouTubeIframeAPIReady() {
         ytPlayer = new YT.Player('player', {
             height: '0', width: '0',
             playerVars: { 'autoplay': 1, 'loop': 1, 'playlist': '' },
-            events: { 'onReady': (event) => { loadBGM(); } }
+            events: { 'onReady': () => { loadBGM(); } }
         });
+    }
+    function loadBGM() {
+        db.ref('settings/bgm').on('value', (s) => {
+            const id = s.val();
+            if(id && ytPlayer && ytPlayer.loadVideoById) { ytPlayer.loadVideoById(id); }
+        });
+    }
+    function setBGM() {
+        const url = document.getElementById('bgm-url').value; if(!url) return;
+        let id = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop();
+        db.ref('settings/bgm').set(id); alert("BGM 적용됨");
     }
 
     const tabs = {
@@ -250,7 +261,6 @@
         id === 'diary' ? box.classList.add('diary-theme') : box.classList.remove('diary-theme');
         document.getElementById('modal-content').innerHTML = tabs[id]();
         document.getElementById('main-modal').style.display = 'flex';
-        
         if(id==='diary') loadDiary();
         if(id==='movie') loadMovies();
         if(id==='library') loadShelf();
@@ -260,207 +270,91 @@
     }
     function closeModal() { document.getElementById('main-modal').style.display = 'none'; }
 
-    // [일기장] - 기존 로직 유지
+    // [원본 로직 보존: 일기/영화/서재/갤러리/담벼락]
     function saveDiary() {
         const t = document.getElementById('d-in').value; if(!t) return;
-        const newRef = db.ref('diary_v2').push();
-        newRef.set({ id: Date.now(), u: currentUser, t: t, d: new Date().toLocaleDateString(), reps: [] });
+        db.ref('diary_v2').push({ id: Date.now(), u: currentUser, t: t, d: new Date().toLocaleDateString(), reps: [] });
         document.getElementById('d-in').value = "";
     }
     function loadDiary() {
         db.ref('diary_v2').on('value', (snapshot) => {
             const data = snapshot.val();
             const list = data ? Object.entries(data).map(([key, val]) => ({...val, firebaseKey: key})) : [];
-            const chat = document.getElementById('diary-chat');
-            if(!chat) return;
+            const chat = document.getElementById('diary-chat'); if(!chat) return;
             let lastD = "";
             chat.innerHTML = list.map(i => {
                 let dateHead = (i.d !== lastD) ? `<div class="msg-date-center">${i.d}</div>` : ""; lastD = i.d;
                 const isMine = i.u === currentUser;
-                const profImg = userProfiles[i.u] || ''; 
-                return `${dateHead}
-                <div class="diary-row" style="flex-direction:${isMine?'row-reverse':'row'}">
-                    <div class="profile-pic" style="background-image:url('${profImg}')"></div>
-                    <div class="bubble ${isMine?'mine':'yours'}">
-                        <div>${i.t}</div>
-                        <div class="diary-actions">
-                            <span onclick="replyDiary('${i.firebaseKey}')">댓글</span>
-                            ${isMine ? `<span onclick="editDiary('${i.firebaseKey}')">수정</span> <span onclick="delDiary('${i.firebaseKey}')">삭제</span>` : ''}
-                        </div>
-                    </div>
-                </div>
-                <div style="font-size:0.75rem; padding:5px 60px; color:#666; text-align:${isMine?'right':'left'}">
-                    ${i.reps ? Object.values(i.reps).map(r => `ㄴ <b>${r.u}</b>: ${r.t}<br>`).join('') : ''}
-                </div>`;
+                return `${dateHead}<div class="diary-row" style="flex-direction:${isMine?'row-reverse':'row'}"><div class="profile-pic" style="background-image:url('${userProfiles[i.u]||''}')"></div><div class="bubble ${isMine?'mine':'yours'}"><div>${i.t}</div><div class="diary-actions"><span onclick="replyDiary('${i.firebaseKey}')">댓글</span>${isMine ? `<span onclick="editDiary('${i.firebaseKey}')">수정</span> <span onclick="delDiary('${i.firebaseKey}')">삭제</span>` : ''}</div></div></div><div style="font-size:0.75rem; padding:5px 60px; color:#666; text-align:${isMine?'right':'left'}">${i.reps ? Object.values(i.reps).map(r => `ㄴ <b>${r.u}</b>: ${r.t}<br>`).join('') : ''}</div>`;
             }).join('');
             chat.scrollTop = chat.scrollHeight;
         });
     }
-    function replyDiary(fKey) { const msg = prompt("댓글 내용:"); if(!msg) return; db.ref(`diary_v2/${fKey}/reps`).push({ u: currentUser, t: msg }); }
-    function delDiary(fKey) { if(confirm("삭제할까요?")) db.ref(`diary_v2/${fKey}`).remove(); }
+    function replyDiary(fKey) { const msg = prompt("댓글:"); if(msg) db.ref(`diary_v2/${fKey}/reps`).push({ u: currentUser, t: msg }); }
+    function delDiary(fKey) { if(confirm("삭제?")) db.ref(`diary_v2/${fKey}`).remove(); }
 
-    // [영화] - 기존 로직 유지
-    function addMovie() {
-        const t = document.getElementById('m-title').value; if(!t) return;
-        db.ref('movie_v2').push({ id: Date.now(), t: t, stars: { '평화': 0, '인철': 0 }, replies: [] });
-        document.getElementById('m-title').value = "";
-    }
+    function addMovie() { const t = document.getElementById('m-title').value; if(t) { db.ref('movie_v2').push({ id: Date.now(), t: t, stars: { '평화': 0, '인철': 0 }, replies: [] }); document.getElementById('m-title').value = ""; } }
     function loadMovies() {
         db.ref('movie_v2').on('value', (snapshot) => {
-            const data = snapshot.val();
-            const list = data ? Object.entries(data).reverse() : [];
-            const container = document.getElementById('movie-list');
-            if(!container) return;
-            container.innerHTML = list.map(([key, m]) => `
-                <div class="movie-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <b style="font-size:1.1rem;">${m.t}</b>
-                        <span style="color:var(--neon-red); cursor:pointer; font-size:0.8rem;" onclick="delMovie('${key}')">삭제</span>
-                    </div>
-                    <div style="margin:10px 0; color:var(--hk-gold); font-size:0.9rem;">
-                        평화: ${'★'.repeat(m.stars['평화']) || '미정'} | 인철: ${'★'.repeat(m.stars['인철']) || '미정'}
-                    </div>
-                    <div style="display:flex; gap:5px;">
-                        <select onchange="rateMovie('${key}', this.value)" style="flex:2; font-size:0.8rem; padding:5px;">
-                            <option value="0">별점 선택</option><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option>
-                        </select>
-                        <button onclick="replyMovie('${key}')" style="flex:1; background:#444; color:white; border:none; border-radius:10px; cursor:pointer;">코멘트</button>
-                    </div>
-                    <div class="movie-reply-area">
-                        ${m.replies ? Object.values(m.replies).map(r => `<div><b>${r.u}</b>: ${r.t}</div>`).join('') : '아직 감상평 없음'}
-                    </div>
-                </div>`).join('');
+            const data = snapshot.val(); const list = data ? Object.entries(data).reverse() : [];
+            const container = document.getElementById('movie-list'); if(!container) return;
+            container.innerHTML = list.map(([key, m]) => `<div class="movie-card"><div style="display:flex; justify-content:space-between;"><b>${m.t}</b><span onclick="delMovie('${key}')">삭제</span></div><div style="margin:10px 0; color:var(--hk-gold);">평화: ${'★'.repeat(m.stars['평화']) || '미정'} | 인철: ${'★'.repeat(m.stars['인철']) || '미정'}</div><div style="display:flex; gap:5px;"><select onchange="rateMovie('${key}', this.value)"><option value="0">별점</option><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select><button onclick="replyMovie('${key}')">코멘트</button></div><div class="movie-reply-area">${m.replies ? Object.values(m.replies).map(r => `<div><b>${r.u}</b>: ${r.t}</div>`).join('') : ''}</div></div>`).join('');
         });
     }
     function rateMovie(fKey, v) { db.ref(`movie_v2/${fKey}/stars/${currentUser}`).set(parseInt(v)); }
-    function replyMovie(fKey) { const t = prompt("코멘트:"); if(!t) return; db.ref(`movie_v2/${fKey}/replies`).push({ u: currentUser, t: t }); }
-    function delMovie(fKey) { if(confirm("삭제할까요?")) db.ref(`movie_v2/${fKey}`).remove(); }
+    function replyMovie(fKey) { const t = prompt("코멘트:"); if(t) db.ref(`movie_v2/${fKey}/replies`).push({ u: currentUser, t: t }); }
+    function delMovie(fKey) { if(confirm("삭제?")) db.ref(`movie_v2/${fKey}`).remove(); }
 
-    // [서재] - 기존 로직 유지
-    function writeBook() {
-        const t = prompt("제목:"); if(!t) return;
-        const c = prompt("내용:"); if(!c) return;
-        const colors = ['#5a3e2b', '#3e5a2b', '#2b3e5a', '#5a2b2b', '#444'];
-        db.ref('lib_v3').push({ id: Date.now(), t, c, color: colors[Math.floor(Math.random()*colors.length)] });
-    }
-    function loadShelf() {
-        db.ref('lib_v3').on('value', (snapshot) => {
-            const data = snapshot.val();
-            const shelf = document.getElementById('lib-shelf');
-            if(!shelf) return;
-            shelf.innerHTML = data ? Object.entries(data).map(([key, b]) => `<div class="book-spine" style="background-color:${b.color}" onclick="viewBook('${key}')">${b.t}</div>`).join('') : '';
-        });
-    }
-    function viewBook(fKey) {
-        db.ref(`lib_v3/${fKey}`).once('value', (s) => {
-            const b = s.val();
-            document.getElementById('modal-content').innerHTML = `
-                <div style="background:#fdfcf0; color:#333; padding:40px; border-left:15px solid ${b.color}; min-height:500px; font-family:'Noto Serif KR', serif;">
-                    <h1 style="border-bottom:2px solid #333; padding-bottom:10px;">${b.t}</h1>
-                    <div style="white-space:pre-wrap; font-size:1.1rem; line-height:2; margin-top:30px;">${b.c}</div>
-                    <div style="margin-top:50px; text-align:right;">
-                        <button onclick="openTab('library')" style="padding:10px 20px;">목록</button>
-                        <button onclick="delBook('${fKey}')" style="color:red; margin-left:10px;">삭제</button>
-                    </div>
-                </div>`;
-        });
-    }
-    function delBook(fKey) { if(confirm("삭제할까요?")) { db.ref(`lib_v3/${fKey}`).remove(); openTab('library'); } }
+    function writeBook() { const t = prompt("제목:"), c = prompt("내용:"); if(t&&c) { const colors = ['#5a3e2b', '#3e5a2b', '#2b3e5a']; db.ref('lib_v3').push({ id: Date.now(), t, c, color: colors[Math.floor(Math.random()*colors.length)] }); } }
+    function loadShelf() { db.ref('lib_v3').on('value', (s) => { const d = s.val(); const shelf = document.getElementById('lib-shelf'); if(shelf) shelf.innerHTML = d ? Object.entries(d).map(([k, b]) => `<div class="book-spine" style="background-color:${b.color}" onclick="viewBook('${k}')">${b.t}</div>`).join('') : ''; }); }
+    function viewBook(fKey) { db.ref(`lib_v3/${fKey}`).once('value', (s) => { const b = s.val(); document.getElementById('modal-content').innerHTML = `<div style="background:#fdfcf0; color:#333; padding:40px; border-left:15px solid ${b.color}; min-height:500px;"><h1>${b.t}</h1><div style="white-space:pre-wrap; margin-top:30px;">${b.c}</div><button onclick="openTab('library')">목록</button><button onclick="delBook('${fKey}')">삭제</button></div>`; }); }
+    function delBook(fKey) { if(confirm("삭제?")) { db.ref(`lib_v3/${fKey}`).remove(); openTab('library'); } }
 
-    // [담벼락] - 기존 로직 유지
-    function addWall() {
-        const t = document.getElementById('w-in').value; if(!t) return;
-        db.ref('wall_v3').push({ id: Date.now(), t, x: Math.random()*75, y: Math.random()*65, rot: (Math.random()*10-5) });
-        document.getElementById('w-in').value="";
-    }
-    function loadWall() {
-        db.ref('wall_v3').on('value', (snapshot) => {
-            const data = snapshot.val();
-            const board = document.getElementById('wall-board');
-            if(!board) return;
-            board.innerHTML = data ? Object.entries(data).map(([key, w]) => `
-                <div class="flyer" style="left:${w.x}%; top:${w.y}%; transform:rotate(${w.rot}deg);">
-                    <span class="flyer-x" onclick="delWall('${key}')">✖</span>${w.t}
-                    <div class="flyer-fringe">${Array(10).fill('<div class="fringe-bit"></div>').join('')}</div>
-                </div>`).join('') : '';
-        });
-    }
-    function delWall(fKey) { db.ref(`wall_v3/${fKey}`).remove(); }
+    function addWall() { const t = document.getElementById('w-in').value; if(t) { db.ref('wall_v3').push({ id: Date.now(), t, x: Math.random()*75, y: Math.random()*65, rot: (Math.random()*10-5) }); document.getElementById('w-in').value=""; } }
+    function loadWall() { db.ref('wall_v3').on('value', (s) => { const d = s.val(); const b = document.getElementById('wall-board'); if(b) b.innerHTML = d ? Object.entries(d).map(([k, w]) => `<div class="flyer" style="left:${w.x}%; top:${w.y}%; transform:rotate(${w.rot}deg);"><span class="flyer-x" onclick="delWall('${k}')">✖</span>${w.t}</div>`).join('') : ''; }); }
+    function delWall(k) { db.ref(`wall_v3/${k}`).remove(); }
 
-    // [캘린더] - 수정 요청 반영
+    function uploadPhoto() { const file = document.getElementById('g-file').files[0], desc = document.getElementById('g-desc').value; if(!file) return; const r = new FileReader(); r.onload = (e) => { db.ref('gallery_v2').push({ id: Date.now(), img: e.target.result, desc }); }; r.readAsDataURL(file); }
+    function loadGallery() { db.ref('gallery_v2').on('value', (s) => { const d = s.val(); const list = d ? Object.values(d).reverse() : []; const c = document.getElementById('g-list'); if(c) c.innerHTML = list.map(p => `<div class="insta-item" style="background-image:url('${p.img}')" onclick="alert('${p.desc}')"></div>`).join(''); }); }
+
+    // [캘린더 보강 로직]
     function renderCalendar() {
-        const year = currentCalDate.getFullYear();
-        const month = currentCalDate.getMonth();
-        const firstDay = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        
+        const year = currentCalDate.getFullYear(), month = currentCalDate.getMonth();
+        const firstDay = new Date(year, month, 1).getDay(), days = new Date(year, month + 1, 0).getDate();
         db.ref('cal_v3').on('value', (snapshot) => {
             const dbData = snapshot.val() || {};
-            let html = `<div class="cal-container"><div class="cal-header"><span onclick="moveMonth(-1)" style="cursor:pointer;">◀</span><span>${year}년 ${month + 1}월</span><span onclick="moveMonth(1)" style="cursor:pointer;">▶</span></div><div class="cal-grid">${['일','월','화','수','목','금','토'].map(d => `<div class="cal-day-label">${d}</div>`).join('')}`;
+            let html = `<div class="cal-container"><div class="cal-header"><span onclick="moveMonth(-1)">◀</span><span>${year}년 ${month + 1}월</span><span onclick="moveMonth(1)">▶</span></div><div class="cal-grid">${['일','월','화','수','목','금','토'].map(d => `<div class="cal-day-label">${d}</div>`).join('')}`;
             for(let i=0; i<firstDay; i++) html += `<div class="cal-cell" style="background:#f9f9f9"></div>`;
-            for(let d=1; d<=daysInMonth; d++) {
-                const key = `${year}-${month+1}-${d}`;
-                const data = dbData[key] || { emo: '', memo: '' };
-                html += `<div class="cal-cell ${selectedCalKey===key?'selected':''}" id="cell-${key}" onclick="editCal('${key}', ${d})"><div class="cal-date-num">${d}</div><div class="cal-content"><div style="font-size:1.2rem;">${data.emo}</div><div class="cal-memo">${data.memo}</div></div></div>`;
+            for(let d=1; d<=days; d++) {
+                const key = `${year}-${month+1}-${d}`, data = dbData[key] || { emo: '', memo: '' };
+                html += `<div class="cal-cell ${selectedCalKey===key?'selected':''}" onclick="editCal('${key}', ${d})"><div class="cal-date-num">${d}</div><div class="cal-content"><div style="font-size:1.2rem;">${data.emo}</div><div class="cal-memo">${data.memo}</div></div></div>`;
             }
-            const area = document.getElementById('cal-render-area');
-            if(area) area.innerHTML = html + `</div></div>`;
+            const area = document.getElementById('cal-render-area'); if(area) area.innerHTML = html + `</div></div>`;
         });
     }
     function moveMonth(dir) { currentCalDate.setMonth(currentCalDate.getMonth() + dir); renderCalendar(); }
     function editCal(key, day) {
-        selectedCalKey = key;
-        renderCalendar(); // 선택 표시를 위해 재렌더링
+        selectedCalKey = key; renderCalendar();
         db.ref(`cal_v3/${key}`).once('value', (s) => {
             const cur = s.val() || { emo: '🏠', memo: '' };
             document.getElementById('cal-editor').style.display = 'block';
-            document.getElementById('cal-edit-title').innerText = `${day}일 기록`;
+            document.getElementById('cal-edit-title').innerText = `${day}일 일정`;
             document.getElementById('cal-memo-in').value = cur.memo;
             selectEmo(cur.emo || '🏠');
         });
     }
     function selectEmo(emo) { selectedEmo = emo; document.querySelectorAll('.emo-item').forEach(el => el.classList.remove('active')); if(document.getElementById('emo-'+emo)) document.getElementById('emo-'+emo).classList.add('active'); }
-    function saveCal() { if(!selectedCalKey) return; db.ref(`cal_v3/${selectedCalKey}`).set({ emo: selectedEmo, memo: document.getElementById('cal-memo-in').value }); alert("저장되었습니다."); }
+    function saveCal() { if(selectedCalKey) db.ref(`cal_v3/${selectedCalKey}`).set({ emo: selectedEmo, memo: document.getElementById('cal-memo-in').value }); }
 
-    // [프로필/갤러리/BGM] - 수정 요청 반영
     function uploadProfile(input) {
         const file = input.files[0]; if(!file) return;
         const reader = new FileReader();
         reader.onload = (e) => {
-            const base64Img = e.target.result;
-            db.ref('profiles/' + currentUser).set(base64Img); // 파이어베이스 즉시 저장
-            document.getElementById('prof-preview').style.backgroundImage = `url(${base64Img})`;
+            const base64 = e.target.result;
+            db.ref('profiles/' + currentUser).set(base64);
+            document.getElementById('prof-preview').style.backgroundImage = `url(${base64})`;
         };
         reader.readAsDataURL(file);
-    }
-    function uploadPhoto() {
-        const file = document.getElementById('g-file').files[0], desc = document.getElementById('g-desc').value;
-        if(!file) return;
-        const r = new FileReader();
-        r.onload = (e) => { db.ref('gallery_v2').push({ id: Date.now(), img: e.target.result, desc }); alert("사진이 등록되었습니다."); };
-        r.readAsDataURL(file);
-    }
-    function loadGallery() {
-        db.ref('gallery_v2').on('value', (snapshot) => {
-            const data = snapshot.val();
-            const list = data ? Object.values(data).reverse() : [];
-            const container = document.getElementById('g-list');
-            if(!container) return;
-            container.innerHTML = list.map(p => `<div class="insta-item" style="background-image:url('${p.img}')" onclick="alert('${p.desc}')"></div>`).join('');
-        });
-    }
-    function setBGM() {
-        const url = document.getElementById('bgm-url').value; if(!url) return;
-        let id = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop();
-        db.ref('settings/bgm').set(id); alert("BGM 적용됨");
-    }
-    function loadBGM() {
-        db.ref('settings/bgm').on('value', (s) => {
-            const id = s.val();
-            if(id && ytPlayer && ytPlayer.loadVideoById) {
-                ytPlayer.loadVideoById(id);
-            }
-        });
     }
 </script>
 </body>
