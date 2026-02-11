@@ -322,7 +322,297 @@
 
     function loadBGM() {
         db.ref('settings/bgm').on('value', s => {
-            const id = s.val(); if(id) document.getElementById('bgm-container').innerHTML = `<iframe width="0" height="0" src="https://www.youtube.com/embed/${id}?autoplay=1&loop=1&playlist=${id}" frameborder="0" allow="autoplay"></iframe>`;
+            const id = s.val(); if(id) document.getElementById('bgm-container').innerHTML = `<iframe width="0" height="0" src="https://www.youtube.c<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Villa 302: Final Archive</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --neon-red: #ff3131; --neon-green: #39ff14; --msg-blue: #007aff; --msg-gray: #e9e9eb; --apple-bg: #1c1c1e; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: white; overflow: hidden; font-family: -apple-system, sans-serif; }
+        
+        /* [1] 입장 화면 */
+        #entry-page { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: url('villa interior.png') no-repeat center center/cover; z-index: 50000; display: flex; justify-content: center; align-items: center; }
+        .lock-box { background: rgba(0,0,0,0.92); backdrop-filter: blur(25px); padding: 40px; border-radius: 35px; border: 1px solid rgba(255,255,255,0.1); width: 320px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .user-sel-btn { flex: 1; padding: 15px; background: #111; color: white; border: 2px solid #333; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .user-sel-btn.active { border-color: var(--neon-green); color: var(--neon-green); background: rgba(57,255,20,0.1); }
+        #pw-disp { font-size: 3rem; color: var(--neon-red); margin-bottom: 25px; height: 50px; letter-spacing: 10px; display: flex; justify-content: center; align-items: center; text-shadow: 0 0 10px var(--neon-red); }
+        .key-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .key { padding: 20px; background: rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; font-size: 1.2rem; transition: 0.2s; }
+        .key:active { background: rgba(255,255,255,0.2); transform: scale(0.95); }
+
+        /* [2] 메인 거실 스테이지 */
+        #stage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100vw; height: 66.67vw; max-width: 150vh; max-height: 100vh; background: url('villa.png') no-repeat center center/contain; background-color: #000; }
+        .target { position: absolute; cursor: pointer; z-index: 10; border-radius: 10px; }
+        .target:hover { background: rgba(255,255,255,0.15); box-shadow: 0 0 20px rgba(255,255,255,0.1); }
+        .wall-pos { top: 18%; left: 50%; width: 15%; height: 35%; } 
+        .movie-pos { top: 8%; left: 63%; width: 20%; height: 15%; } 
+        .cal-pos { top: 45%; left: 74%; width: 8%; height: 20%; } 
+        .diary-pos { top: 52%; left: 57%; width: 13%; height: 8%; } 
+        .photo-pos { top: 25%; left: 72%; width: 10%; height: 20%; } 
+        .lib-pos { top: 35%; left: 35%; width: 12%; height: 25%; } 
+
+        /* [3] 모달 시스템 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; justify-content: center; align-items: center; }
+        .modal-inner { background: var(--apple-bg); width: 92%; max-width: 800px; height: 85vh; border-radius: 30px; padding: 30px; overflow-y: auto; position: relative; border: 1px solid #333; }
+        .close-btn { position: absolute; top: 20px; right: 30px; font-size: 2.5rem; color: #888; cursor: pointer; z-index: 100; }
+
+        /* [4] 기능별 스타일 상세 (로직 확장) */
+        /* 일기장(iMessage) */
+        .diary-theme { background: #fff !important; color: #000 !important; }
+        #diary-chat { height: calc(100% - 150px); overflow-y: auto; padding: 15px; display: flex; flex-direction: column; }
+        .diary-row { display: flex; margin-bottom: 12px; align-items: flex-end; }
+        .profile-img { width: 35px; height: 35px; border-radius: 50%; background-size: cover; background-position: center; margin: 0 10px; background-color: #eee; flex-shrink: 0; }
+        .bubble { max-width: 65%; padding: 12px 16px; border-radius: 20px; font-size: 0.95rem; line-height: 1.4; }
+        .bubble.mine { background: var(--msg-blue); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
+        .bubble.yours { background: var(--msg-gray); color: #000; border-bottom-left-radius: 4px; }
+
+        /* 영화(Movie) */
+        .mv-card { background: #2c2c2e; padding: 20px; border-radius: 15px; margin-bottom: 20px; border-left: 5px solid var(--neon-red); }
+        .star-rating { color: #ffd700; margin-bottom: 8px; }
+
+        /* 갤러리(Insta) */
+        .insta-post { background: #000; border: 1px solid #333; margin-bottom: 30px; border-radius: 12px; overflow: hidden; }
+        .insta-header { padding: 12px; display: flex; align-items: center; gap: 10px; font-weight: bold; }
+        .insta-img { width: 100%; aspect-ratio: 1/1; background-size: cover; background-position: center; }
+        .insta-body { padding: 12px; font-size: 0.9rem; }
+
+        /* 방명록(Wall) */
+        .leaflet-box { display: flex; flex-wrap: wrap; gap: 15px; }
+        .leaflet { background: #fff9c4; color: #333; width: 140px; padding: 15px; font-family: 'Nanum Pen Script'; font-size: 1.4rem; box-shadow: 3px 3px 10px rgba(0,0,0,0.3); transform: rotate(-1deg); }
+
+        /* 캘린더 & 서재 */
+        .cal-table { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #444; border: 1px solid #444; }
+        .cal-day { background: #fff; color: #000; min-height: 80px; padding: 5px; cursor: pointer; font-weight: bold; }
+        .book-item { background: #2c2c2e; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 5px solid var(--neon-green); }
+
+        /* 공통 UI */
+        input, textarea, select { width: 100%; padding: 14px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 12px; margin-bottom: 10px; box-sizing: border-box; }
+        .btn-send { background: var(--msg-blue); color: white; border: none; padding: 15px; border-radius: 12px; width: 100%; cursor: pointer; font-weight: bold; }
+        #sitemap-btn { position: fixed; top: 25px; left: 25px; z-index: 1100; cursor: pointer; font-size: 1.5rem; background: rgba(255,255,255,0.1); width: 50px; height: 50px; border-radius: 12px; display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body>
+
+<div id="bgm-player" style="position:fixed; top:-5000px;"><div id="player"></div></div>
+<div id="sitemap-btn" onclick="openTab('sitemap')">☰</div>
+
+<div id="entry-page">
+    <div class="lock-box">
+        <h2 style="color:white; margin-bottom:20px; letter-spacing: 2px;">VILLA 302</h2>
+        <div style="display:flex; gap:10px; margin-bottom:20px;">
+            <button onclick="selU('평화','1231')" id="b-평화" class="user-sel-btn">평화</button>
+            <button onclick="selU('인철','0526')" id="b-인철" class="user-sel-btn">인철</button>
+        </div>
+        <div id="pw-disp">----</div>
+        <div class="key-grid">
+            <script>for(let i=1; i<=9; i++) document.write(`<div class="key" onclick="press('${i}')">${i}</div>`);</script>
+            <div class="key" onclick="inputPw=''; updatePw();">C</div>
+            <div class="key" onclick="press('0')">0</div>
+            <div class="key" style="background:var(--neon-red)" onclick="checkPw()">E</div>
+        </div>
+    </div>
+</div>
+
+<div id="stage">
+    <div class="target wall-pos" onclick="openTab('wall')"></div>
+    <div class="target movie-pos" onclick="openTab('movie')"></div>
+    <div class="target cal-pos" onclick="openTab('calendar')"></div>
+    <div class="target diary-pos" onclick="openTab('diary')"></div>
+    <div class="target photo-pos" onclick="openTab('gallery')"></div>
+    <div class="target lib-pos" onclick="openTab('library')"></div>
+</div>
+
+<div id="main-modal" class="modal">
+    <div class="modal-inner" id="modal-box">
+        <span class="close-btn" onclick="closeModal()">×</span>
+        <div id="modal-content"></div>
+    </div>
+</div>
+
+<script>
+    // --- [Firebase 초기화] ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyDLTGv4Z3zJUseuKw1acvHHwPzooZhXodc",
+        databaseURL: "https://villa302-default-rtdb.firebaseio.com",
+        projectId: "villa302",
+        appId: "1:166700659009:web:18c2872914aab8b4bbf1c0"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentUser = "", targetPw = "", inputPw = "", userProfiles = {}, player;
+
+    // --- [인증 & 입장 로직] ---
+    function selU(u,p) { currentUser=u; targetPw=p; inputPw=""; document.querySelectorAll('.user-sel-btn').forEach(b=>b.classList.remove('active')); document.getElementById('b-'+u).classList.add('active'); updatePw(); }
+    function press(n) { if(inputPw.length<4) inputPw+=n; updatePw(); }
+    function updatePw() { document.getElementById('pw-disp').innerText = "*".repeat(inputPw.length)||"----"; }
+    
+    function checkPw() {
+        if(inputPw === targetPw) {
+            document.getElementById('entry-page').style.display='none';
+            document.getElementById('sitemap-btn').style.display='flex';
+            db.ref('profiles').on('value', s => { userProfiles = s.val() || {}; });
+            initBGM();
+        } else { alert("비밀번호 오류"); inputPw=""; updatePw(); }
+    }
+
+    // --- [BGM 로직 - 이전 코드에서 복구] ---
+    var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api";
+    document.getElementsByTagName('script')[0].parentNode.insertBefore(tag, null);
+    function initBGM() {
+        player = new YT.Player('player', { height: '0', width: '0', events: { 'onReady': () => {
+            db.ref('bgm_vfinal').on('value', s => {
+                const data = s.val(); if(!data) return;
+                const ids = Object.values(data).map(i => i.id);
+                player.loadPlaylist({ playlist: ids.join(','), listType: 'playlist' });
+            });
+        }}});
+    }
+
+    // --- [탭 시스템] ---
+    function openTab(id) {
+        const box = document.getElementById('modal-box');
+        const content = document.getElementById('modal-content');
+        box.className = (id === 'diary' ? 'modal-inner diary-theme' : 'modal-inner');
+        document.getElementById('main-modal').style.display = 'flex';
+        
+        if(id === 'sitemap') {
+            content.innerHTML = `<h3>SITEMAP</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                ${['diary','wall','gallery','movie','calendar','library','bgm','profile'].map(t=>`<button class="btn-send" style="background:#333;" onclick="openTab('${t}')">${t.toUpperCase()}</button>`).join('')}
+            </div>`;
+        } else if(id === 'movie') {
+            content.innerHTML = `<h3>🎬 MOVIE 아카이브</h3><input id="mv-t" placeholder="영화 제목"><textarea id="mv-r" placeholder="감상평"></textarea>
+                <select id="mv-s"><option value="5">⭐⭐⭐⭐⭐</option><option value="4">⭐⭐⭐⭐</option><option value="3">⭐⭐⭐</option></select>
+                <button class="btn-send" onclick="addMv()">저장하기</button><div id="mv-list" style="margin-top:20px;"></div>`;
+            renderMv();
+        } else if(id === 'diary') {
+            content.innerHTML = `<h3>📔 DIARY</h3><div id="diary-chat"></div>
+                <div style="display:flex; gap:10px; margin-top:10px;"><textarea id="dy-in" placeholder="내용..."></textarea>
+                <button class="btn-send" style="width:80px;" onclick="addDy()">↑</button></div>`;
+            renderDy();
+        } else if(id === 'wall') {
+            content.innerHTML = `<h3>🧱 THE WALL</h3><textarea id="wl-in" placeholder="붙일 메시지"></textarea><button class="btn-send" onclick="addWl()">벽에 붙이기</button>
+                <div class="leaflet-box" id="wl-list" style="margin-top:20px;"></div>`;
+            renderWl();
+        } else if(id === 'gallery') {
+            content.innerHTML = `<h3>📸 GALLERY</h3><input type="file" onchange="addGal(this)"><div id="gal-list" style="margin-top:20px;"></div>`;
+            renderGal();
+        } else if(id === 'calendar') {
+            content.innerHTML = `<h3>📅 10월 CALENDAR</h3><div id="cal-list" class="cal-table"></div>
+                <div id="cal-ctrl" style="display:none; margin-top:15px; background:#fff; padding:15px; border-radius:15px; color:#000; text-align:center;">
+                <p>오늘의 기분 기록:</p><div style="display:flex; gap:15px; font-size:2rem; justify-content:center;">${['🏠','🎬','🍺','❤️','😭','⭐'].map(e=>`<span onclick="saveCal('${e}')" style="cursor:pointer;">${e}</span>`).join('')}</div></div>`;
+            renderCal();
+        } else if(id === 'library') {
+            content.innerHTML = `<h3>📚 LIBRARY</h3><input id="bk-t" placeholder="도서명"><input id="bk-d" type="date">
+                <select id="bk-st"><option>읽는 중</option><option>완독</option></select>
+                <button class="btn-send" onclick="addBk()">서재 등록</button><div id="bk-list" style="margin-top:20px;"></div>`;
+            renderBk();
+        } else if(id === 'bgm') {
+            content.innerHTML = `<h3>🎵 BGM MANAGER</h3><input id="bgm-in" placeholder="유튜브 링크 또는 ID"><button class="btn-send" onclick="addBgm()">재생 목록 추가</button><div id="bgm-list" style="margin-top:20px;"></div>`;
+            renderBgm();
+        } else if(id === 'profile') {
+            content.innerHTML = `<h3>👤 PROFILE</h3><div style="text-align:center;">
+                <div id="pf-pre" style="width:120px; height:120px; border-radius:50%; margin:0 auto 20px; background-size:cover; border:3px solid var(--neon-green); background-image:url('${userProfiles[currentUser]||''}')"></div>
+                <input type="file" onchange="prePf(this)"><button class="btn-send" onclick="savePf()">사진 저장</button></div>`;
+        }
+    }
+
+    // --- [핵심 로직 통합] ---
+    function addMv() { const t=document.getElementById('mv-t').value, r=document.getElementById('mv-r').value, s=document.getElementById('mv-s').value; if(t) db.ref('mv_final').push({t, r, s, u:currentUser}); }
+    function renderMv() {
+        db.ref('mv_final').on('value', s => {
+            const d=s.val(); const div=document.getElementById('mv-list'); if(!div||!d) return;
+            div.innerHTML = Object.keys(d).reverse().map(k=>`
+                <div class="mv-card">
+                    <b>${d[k].t}</b> <div class="star-rating">${'★'.repeat(d[k].s)}</div>
+                    <p style="font-size:0.9rem; color:#ccc;">${d[k].r}</p>
+                    <small style="color:gray;">Writer: ${d[k].u}</small>
+                    ${d[k].u===currentUser?`<span style="float:right; color:red; cursor:pointer;" onclick="db.ref('mv_final/${k}').remove()">삭제</span>`:''}
+                </div>`).join('');
+        });
+    }
+
+    function addDy() { const t=document.getElementById('dy-in').value; if(t) db.ref('dy_final').push({t, u:currentUser, ts:Date.now()}); document.getElementById('dy-in').value=""; }
+    function renderDy() {
+        db.ref('dy_final').on('value', s => {
+            const d=s.val(); const div=document.getElementById('diary-chat'); if(!div||!d) return;
+            div.innerHTML = Object.keys(d).map(k => {
+                const isM = d[k].u===currentUser;
+                return `<div class="diary-row" style="flex-direction:${isM?'row-reverse':'row'}">
+                    <div class="profile-img" style="background-image:url('${userProfiles[d[k].u]||''}')"></div>
+                    <div class="bubble ${isM?'mine':'yours'}" onclick="if('${d[k].u}'==='${currentUser}' && confirm('삭제?')) db.ref('dy_final/${k}').remove()">${d[k].t}</div></div>`;
+            }).join('');
+            div.scrollTop = div.scrollHeight;
+        });
+    }
+
+    function addWl() { const t=document.getElementById('wl-in').value; if(t) db.ref('wl_final').push({t, u:currentUser}); document.getElementById('wl-in').value=""; }
+    function renderWl() {
+        db.ref('wl_final').on('value', s => {
+            const d=s.val(); const div=document.getElementById('wl-list'); if(!div||!d) {div.innerHTML=""; return;}
+            div.innerHTML = Object.keys(d).map(k => `<div class="leaflet">${d[k].t}<br><small>- From. ${d[k].u}</small>
+                <span style="position:absolute; top:2px; right:5px; font-size:0.8rem; cursor:pointer;" onclick="db.ref('wl_final/${k}').remove()">×</span></div>`).join('');
+        });
+    }
+
+    function addGal(i) { if(i.files[0]) { const r=new FileReader(); r.onload=e=>db.ref('gal_final').push({img:e.target.result, u:currentUser}); r.readAsDataURL(i.files[0]); } }
+    function renderGal() {
+        db.ref('gal_final').on('value', s => {
+            const d=s.val(); const div=document.getElementById('gal-list'); if(!div||!d) return;
+            div.innerHTML = Object.keys(d).reverse().map(k => `
+                <div class="insta-post">
+                    <div class="insta-header"><div class="profile-img" style="width:25px; height:25px; background-image:url('${userProfiles[d[k].u]||''}')"></div>${d[k].u}</div>
+                    <div class="insta-img" style="background-image:url('${d[k].img}')"></div>
+                    <div class="insta-body"><span onclick="db.ref('gal_final/${k}').remove()" style="cursor:pointer; color:gray;">삭제</span></div>
+                </div>`).join('');
+        });
+    }
+
+    function addBk() { const t=document.getElementById('bk-t').value, d=document.getElementById('bk-d').value, st=document.getElementById('bk-st').value; if(t) db.ref('bk_final').push({t, d, st, u:currentUser}); }
+    function renderBk() {
+        db.ref('bk_final').on('value', s => {
+            const d=s.val(); const div=document.getElementById('bk-list'); if(!div||!d) {div.innerHTML=""; return;}
+            div.innerHTML = Object.keys(d).reverse().map(k => `<div class="book-item">
+                <b>📖 ${d[k].t}</b><br><small>${d[k].st} | ${d[k].d} (${d[k].u})</small>
+                <span style="float:right; cursor:pointer;" onclick="db.ref('bk_final/${k}').remove()">×</span></div>`).join('');
+        });
+    }
+
+    let selD = "";
+    function renderCal() {
+        db.ref('cal_final').on('value', s => {
+            const data=s.val()||{}; let h="";
+            for(let i=1; i<=31; i++) {
+                const k=`2024-10-${i}`;
+                h += `<div class="cal-day" onclick="selD='${k}'; document.getElementById('cal-ctrl').style.display='block';">${i}<div style="text-align:center; font-size:1.5rem;">${data[k]||''}</div></div>`;
+            }
+            document.getElementById('cal-list').innerHTML = h;
+        });
+    }
+    function saveCal(e) { if(selD) db.ref('cal_final/'+selD).set(e); }
+
+    function addBgm() { const v=document.getElementById('bgm-in').value; const id=v.includes('v=')?v.split('v=')[1].split('&')[0]:v; if(id) db.ref('bgm_vfinal').push({id}); }
+    function renderBgm() {
+        db.ref('bgm_vfinal').on('value', s => {
+            const d=s.val(); const div=document.getElementById('bgm-list'); if(!div||!d) return;
+            div.innerHTML = Object.keys(d).map(k=>`<div style="padding:10px; border-bottom:1px solid #333;">🎵 ${d[k].id} <span style="float:right; color:red; cursor:pointer;" onclick="db.ref('bgm_vfinal/${k}').remove()">삭제</span></div>`).join('');
+        });
+    }
+
+    let tempPfData = "";
+    function prePf(i) { if(i.files[0]) { const r=new FileReader(); r.onload=e=>{ document.getElementById('pf-pre').style.backgroundImage=`url('${e.target.result}')`; tempPfData=e.target.result; }; r.readAsDataURL(i.files[0]); } }
+    function savePf() { if(tempPfData) db.ref('profiles/'+currentUser).set(tempPfData).then(()=>alert("프로필 저장됨")); }
+
+    function closeModal() { document.getElementById('main-modal').style.display = 'none'; }
+</script>
+</body>
+</html>om/embed/${id}?autoplay=1&loop=1&playlist=${id}" frameborder="0" allow="autoplay"></iframe>`;
         });
     }
 </script>
