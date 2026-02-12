@@ -264,23 +264,35 @@
 
     let currentUser = { name: "", pw: "", img: "" };
     let pwInputString = "";
+    // 초기값에 빈 객체/배열 설정하여 undefined 오류 방지
     let ARCHIVE_DB = { calendar: {}, movies: [], diary: [], books: [], wall: [], gallery: [], profiles: {} };
 
     // [1] Firebase 실시간 데이터 연동
     db.ref('VILLA_302_DATA').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
-            ARCHIVE_DB = data;
-            // 실시간 프로필 동기화
-            if (currentUser.name && ARCHIVE_DB.profiles && ARCHIVE_DB.profiles[currentUser.name]) {
+            // 데이터가 로드될 때 기존 구조를 유지하며 병합
+            ARCHIVE_DB = {
+                calendar: data.calendar || {},
+                movies: data.movies || [],
+                diary: data.diary || [],
+                books: data.books || [],
+                wall: data.wall || [],
+                gallery: data.gallery || [],
+                profiles: data.profiles || {}
+            };
+            
+            if (currentUser.name && ARCHIVE_DB.profiles[currentUser.name]) {
                 currentUser.img = ARCHIVE_DB.profiles[currentUser.name];
                 const navImg = document.getElementById('user-avatar-img');
                 if(navImg) navImg.src = currentUser.img;
             }
-            const currentModal = document.getElementById('modal-overlay').style.display;
-            if(currentModal === 'flex') {
-                if(document.getElementById('dy-render')) renderDiary();
+
+            // 모달이 열려있을 때 실시간 데이터 반영 (캘린더 포함)
+            const overlay = document.getElementById('modal-overlay');
+            if(overlay && overlay.style.display === 'flex') {
                 if(document.getElementById('cal-render')) renderCal();
+                if(document.getElementById('dy-render')) renderDiary();
                 if(document.getElementById('mv-render')) renderMovies();
             }
         }
@@ -301,7 +313,7 @@
         updatePwUI();
     }
 
-    // [3] 비밀번호 입력 및 로그인 로직
+    // [3] 비밀번호 및 로그인
     function addPw(n) { 
         if(!currentUser.name) { alert("사용자를 먼저 선택해 주세요."); return; }
         if(pwInputString.length < 4) { pwInputString += n; updatePwUI(); }
@@ -338,34 +350,26 @@
         if (e.key === "Escape") closeArchive();
     }
 
-    // [4] 프로필 이미지 변경 및 서버 저장
     function changeProfileImg() {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
         input.onchange = e => {
             const file = e.target.files[0];
-            if (!file) return;
-            if (file.size > 1024 * 1024) { 
-                alert("파일이 너무 큽니다. 1MB 이하의 사진을 선택해주세요."); 
-                return; 
-            }
+            if (!file || file.size > 1024 * 1024) { alert("1MB 이하만 가능합니다."); return; }
             const reader = new FileReader();
             reader.onload = ev => {
                 const imageData = ev.target.result;
                 currentUser.img = imageData;
                 document.getElementById('user-avatar-img').src = imageData;
-                if (!ARCHIVE_DB.profiles) ARCHIVE_DB.profiles = {};
                 ARCHIVE_DB.profiles[currentUser.name] = imageData;
                 saveToLocal();
-                alert("프로필 사진이 서버에 저장되어 자동 연동되었습니다.");
             };
             reader.readAsDataURL(file);
         };
         input.click();
     }
 
-    // [5] 서버 데이터 저장 함수
     function saveToLocal() {
         db.ref('VILLA_302_DATA').set(ARCHIVE_DB);
     }
@@ -449,14 +453,7 @@
             body.innerHTML = `<h2>🎬 MOVIE LOG</h2><div style="background:#f0f0f2; padding:25px; border-radius:30px; margin-bottom:30px;"><input id="mv-tit" placeholder="영화 제목"><input id="mv-dir" placeholder="감독/기록"><button class="btn-action" style="width:100%; margin-top:15px;" onclick="saveMovie()">리스트 추가</button></div><div id="mv-render"></div>`;
             renderMovies();
         } else if(type === 'diary') {
-            body.innerHTML = `<h2>📔 iMessage DIARY</h2>
-                <div class="imsg-wrap" id="dy-render"></div>
-                <div class="imsg-input-area">
-                    <button class="btn-action" onclick="document.getElementById('dy-img-in').click()" style="padding:15px;">📷</button>
-                    <input type="file" id="dy-img-in" style="display:none;" onchange="handleDiaryImage(this)">
-                    <input id="dy-in" placeholder="메시지 작성..." style="margin:0;">
-                    <button class="btn-action" onclick="saveDiary()">전송</button>
-                </div>`;
+            body.innerHTML = `<h2>📔 iMessage DIARY</h2><div class="imsg-wrap" id="dy-render"></div><div class="imsg-input-area"><button class="btn-action" onclick="document.getElementById('dy-img-in').click()">📷</button><input type="file" id="dy-img-in" style="display:none;" onchange="handleDiaryImage(this)"><input id="dy-in" placeholder="메시지 작성..."><button class="btn-action" onclick="saveDiary()">전송</button></div>`;
             renderDiary();
         } else if(type === 'library') {
             body.innerHTML = `<h2>📚 PRIVATE LIBRARY</h2><div class="lib-shelf" id="lib-render"></div><div style="margin-top:40px;"><input id="bk-tit" placeholder="도서명"><textarea id="bk-rev" placeholder="짧은 감상평..."></textarea>책등 색상: <input type="color" id="bk-col" value="#5d4037" style="height:60px; padding:5px;"><button class="btn-action" style="width:100%; margin-top:20px;" onclick="saveBook()">서재에 꽂기</button></div>`;
@@ -471,40 +468,57 @@
     }
     function closeArchive() { document.getElementById('modal-overlay').style.display = 'none'; }
 
-    let tempDiaryImg = "";
-    function handleDiaryImage(input) {
-        if(input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = e => { tempDiaryImg = e.target.result; alert("이미지 첨부됨"); };
-            reader.readAsDataURL(input.files[0]);
+    // 캘린더 핵심 수정: 데이터 수신 전/후 모두 대응하도록 로직 보강
+    function renderCal() {
+        const target = document.getElementById('cal-render'); 
+        if(!target) return;
+        target.innerHTML = "";
+        for(let i=1; i<=28; i++) {
+            const dStr = `2026-02-${String(i).padStart(2,'0')}`;
+            // ARCHIVE_DB.calendar가 없더라도 에러 나지 않게 처리
+            const item = (ARCHIVE_DB.calendar && ARCHIVE_DB.calendar[dStr]) ? ARCHIVE_DB.calendar[dStr] : null;
+            target.innerHTML += `
+                <div class="cal-cell" onclick="openDayEditor('${dStr}')">
+                    <span class="cell-num">${i}</span>
+                    ${item ? `<span class="cell-emoji">${item.emo}</span><span class="cell-brief">${item.tit}</span>` : ''}
+                </div>`;
         }
     }
 
+    function openDayEditor(date) {
+        const d = (ARCHIVE_DB.calendar && ARCHIVE_DB.calendar[date]) ? ARCHIVE_DB.calendar[date] : {emo:'😊', tit:'', txt:''};
+        document.getElementById('modal-body').innerHTML = `<h2>📅 ${date} 기록</h2><select id="ed-emo">${['😊','❤️','🍰','🎬','🍷','🎁','✈️','😭','💪','🏠'].map(e=>`<option ${d.emo===e?'selected':''}>${e}</option>`).join('')}</select><input id="ed-tit" placeholder="제목" value="${d.tit}"><textarea id="ed-txt" placeholder="일기..." style="height:200px;">${d.txt}</textarea><button class="btn-action" onclick="saveDayData('${date}')">저장</button>`;
+    }
+
+    function saveDayData(date) {
+        if(!ARCHIVE_DB.calendar) ARCHIVE_DB.calendar = {};
+        ARCHIVE_DB.calendar[date] = { 
+            emo: document.getElementById('ed-emo').value, 
+            tit: document.getElementById('ed-tit').value, 
+            txt: document.getElementById('ed-txt').value 
+        };
+        saveToLocal(); 
+        openArchive('calendar');
+    }
+
+    /* 나머지 렌더링 함수들 (기존 유지) */
     function renderDiary() {
         const target = document.getElementById('dy-render');
         if(!target) return;
         let diaryHTML = `<div style="text-align:center; width:100%; color:#8e8e93; font-size:0.8rem; margin:20px 0; font-weight:600; clear:both;">2026년 2월 12일 목요일</div>`;
-        if(!ARCHIVE_DB.diary) ARCHIVE_DB.diary = [];
-        diaryHTML += ARCHIVE_DB.diary.map((d, i) => `
+        diaryHTML += (ARCHIVE_DB.diary || []).map((d, i) => `
             <div class="imsg-row ${d.u === currentUser.name ? 'me' : 'you'}">
                 <img src="${d.img || 'default.jpg'}" class="imsg-avatar">
                 <div class="imsg-content">
-                    <div class="imsg-bubble">
-                        ${d.txt}
-                        ${d.media ? `<img src="${d.media}" style="max-width:100%; border-radius:10px; margin-top:10px;">` : ''}
-                    </div>
-                    <div class="imsg-meta">
-                        <span>${d.u}</span>
-                        <span onclick="replyDiary(${i})" style="cursor:pointer; margin-left:8px;">답글(${d.replies ? d.replies.length : 0})</span>
-                        ${d.u === currentUser.name ? `<span onclick="deleteDiary(${i})" style="cursor:pointer; margin-left:8px;">삭제</span>` : ''}
-                    </div>
+                    <div class="imsg-bubble">${d.txt}${d.media ? `<img src="${d.media}" style="max-width:100%; border-radius:10px; margin-top:10px;">` : ''}</div>
+                    <div class="imsg-meta"><span>${d.u}</span><span onclick="replyDiary(${i})" style="cursor:pointer; margin-left:8px;">답글(${d.replies ? d.replies.length : 0})</span>${d.u === currentUser.name ? `<span onclick="deleteDiary(${i})" style="cursor:pointer; margin-left:8px;">삭제</span>` : ''}</div>
                     <div class="imsg-comments">${d.replies ? d.replies.map(r => `<div><b>${r.u}:</b> ${r.txt}</div>`).join('') : ''}</div>
                 </div>
             </div>`).join('');
         target.innerHTML = diaryHTML;
         target.scrollTop = target.scrollHeight;
     }
-    
+
     function saveDiary() {
         const v = document.getElementById('dy-in').value;
         if(v || tempDiaryImg) { 
@@ -515,39 +529,12 @@
         document.getElementById('dy-in').value = "";
     }
 
-    function renderCal() {
-        const target = document.getElementById('cal-render'); 
-        if(!target) return;
-        target.innerHTML = "";
-        for(let i=1; i<=28; i++) {
-            const dStr = `2026-02-${String(i).padStart(2,'0')}`;
-            const item = (ARCHIVE_DB.calendar && ARCHIVE_DB.calendar[dStr]) ? ARCHIVE_DB.calendar[dStr] : null;
-            target.innerHTML += `<div class="cal-cell" onclick="openDayEditor('${dStr}')"><span class="cell-num">${i}</span>${item ? `<span class="cell-emoji">${item.emo}</span><span class="cell-brief">${item.tit}</span>` : ''}</div>`;
-        }
-    }
-    function openDayEditor(date) {
-        const d = (ARCHIVE_DB.calendar && ARCHIVE_DB.calendar[date]) ? ARCHIVE_DB.calendar[date] : {emo:'😊', tit:'', txt:''};
-        document.getElementById('modal-body').innerHTML = `<h2>📅 ${date} 기록</h2><select id="ed-emo">${['😊','❤️','🍰','🎬','🍷','🎁','✈️','😭','💪','🏠'].map(e=>`<option ${d.emo===e?'selected':''}>${e}</option>`).join('')}</select><input id="ed-tit" placeholder="제목" value="${d.tit}"><textarea id="ed-txt" placeholder="일기..." style="height:200px;">${d.txt}</textarea><button class="btn-action" onclick="saveDayData('${date}')">저장</button>`;
-    }
-    function saveDayData(date) {
-        if(!ARCHIVE_DB.calendar) ARCHIVE_DB.calendar = {};
-        ARCHIVE_DB.calendar[date] = { emo: document.getElementById('ed-emo').value, tit: document.getElementById('ed-tit').value, txt: document.getElementById('ed-txt').value };
-        saveToLocal(); openArchive('calendar');
-    }
-    function deleteDiary(i) { if(confirm("삭제?")) { ARCHIVE_DB.diary.splice(i, 1); saveToLocal(); renderDiary(); } }
-    function replyDiary(i) {
-        const r = prompt("답글:"); 
-        if(r) { 
-            if(!ARCHIVE_DB.diary[i].replies) ARCHIVE_DB.diary[i].replies = [];
-            ARCHIVE_DB.diary[i].replies.push({u: currentUser.name, txt: r}); 
-            saveToLocal(); renderDiary(); 
-        }
-    }
     function renderBooks() {
         const target = document.getElementById('lib-render');
         if(!target) return;
         target.innerHTML = (ARCHIVE_DB.books || []).map((b, i) => `<div class="book-obj" style="background:${b.col}" onclick="handleBookClick(${i})">${b.tit}</div>`).join('');
     }
+
     function saveBook() {
         const t = document.getElementById('bk-tit').value;
         const r = document.getElementById('bk-rev').value;
@@ -555,10 +542,8 @@
         if(t) { 
             if(!ARCHIVE_DB.books) ARCHIVE_DB.books = [];
             ARCHIVE_DB.books.push({tit: t, rev: r, col: c}); 
-            saveToLocal(); 
-            renderBooks(); 
-            document.getElementById('bk-tit').value = "";
-            document.getElementById('bk-rev').value = "";
+            saveToLocal(); renderBooks(); 
+            document.getElementById('bk-tit').value = ""; document.getElementById('bk-rev').value = "";
         }
     }
 
@@ -571,15 +556,9 @@
                     <small onclick="editMovie(${i})" style="cursor:pointer; color:var(--msg-blue); font-weight:bold;">수정</small>
                     <small onclick="deleteMovie(${i})" style="cursor:pointer; color:var(--neon-red); font-weight:bold;">삭제</small>
                 </div>
-                <h3>🍿 ${m.tit}</h3>
-                <p style="color:#666;">${m.dir}</p>
-                <div class="thread">
-                    ${(m.cmts || []).map(c => `<div><b>${c.u}:</b> ${c.txt} (★${c.star})</div>`).join('')}
-                </div>
-                <div style="display:flex; gap:10px; margin-top:15px;">
-                    <input id="cmt-${i}" placeholder="코멘트..." style="margin:0;">
-                    <button class="btn-action" onclick="addMovieCmt(${i})">등록</button>
-                </div>
+                <h3>🍿 ${m.tit}</h3><p style="color:#666;">${m.dir}</p>
+                <div class="thread">${(m.cmts || []).map(c => `<div><b>${c.u}:</b> ${c.txt} (★${c.star})</div>`).join('')}</div>
+                <div style="display:flex; gap:10px; margin-top:15px;"><input id="cmt-${i}" placeholder="코멘트..." style="margin:0;"><button class="btn-action" onclick="addMovieCmt(${i})">등록</button></div>
             </div>`).join('');
     }
 
@@ -589,52 +568,36 @@
         if(t) {
             if(!ARCHIVE_DB.movies) ARCHIVE_DB.movies = [];
             ARCHIVE_DB.movies.push({ tit: t, dir: d, cmts: [] });
-            saveToLocal();
-            renderMovies();
-            document.getElementById('mv-tit').value = "";
-            document.getElementById('mv-dir').value = "";
+            saveToLocal(); renderMovies();
+            document.getElementById('mv-tit').value = ""; document.getElementById('mv-dir').value = "";
         }
     }
 
     function editMovie(i) {
         const m = ARCHIVE_DB.movies[i];
-        const newTit = prompt("영화 제목 수정:", m.tit);
-        if (newTit === null) return;
-        const newDir = prompt("감독/기록 수정:", m.dir);
-        if (newDir === null) return;
-        ARCHIVE_DB.movies[i].tit = newTit;
-        ARCHIVE_DB.movies[i].dir = newDir;
-        saveToLocal();
-        renderMovies();
+        const newTit = prompt("영화 제목 수정:", m.tit); if (newTit === null) return;
+        const newDir = prompt("감독/기록 수정:", m.dir); if (newDir === null) return;
+        ARCHIVE_DB.movies[i].tit = newTit; ARCHIVE_DB.movies[i].dir = newDir;
+        saveToLocal(); renderMovies();
     }
 
     function deleteMovie(i) {
-        if(confirm("영화 티켓을 찢을까요?")) {
-            ARCHIVE_DB.movies.splice(i, 1);
-            saveToLocal();
-            renderMovies();
-        }
+        if(confirm("영화 티켓을 찢을까요?")) { ARCHIVE_DB.movies.splice(i, 1); saveToLocal(); renderMovies(); }
     }
 
     function addMovieCmt(i) {
         const input = document.getElementById(`cmt-${i}`);
         if(!input.value) return;
-        const star = prompt("별점 (1~5):", "5");
-        if(star === null) return;
+        const star = prompt("별점 (1~5):", "5"); if(star === null) return;
         if(!ARCHIVE_DB.movies[i].cmts) ARCHIVE_DB.movies[i].cmts = [];
         ARCHIVE_DB.movies[i].cmts.push({ u: currentUser.name, txt: input.value, star: star });
-        input.value = "";
-        saveToLocal();
-        renderMovies();
+        input.value = ""; saveToLocal(); renderMovies();
     }
 
     function renderWall() {
         const board = document.getElementById('wall-board');
         if(!board) return;
-        board.innerHTML = (ARCHIVE_DB.wall || []).map((f, i) => `
-            <div class="flyer" style="left:${f.x}%; top:${f.y}%; background:${f.c}; transform:rotate(${f.r}deg);" onclick="deleteFlyer(${i})">
-                ${f.t}
-            </div>`).join('');
+        board.innerHTML = (ARCHIVE_DB.wall || []).map((f, i) => `<div class="flyer" style="left:${f.x}%; top:${f.y}%; background:${f.c}; transform:rotate(${f.r}deg);" onclick="deleteFlyer(${i})">${f.t}</div>`).join('');
     }
     function saveFlyer() {
         const v = document.getElementById('wl-in').value;
@@ -642,9 +605,7 @@
             const colors = ['#fff9c4','#ffccbc','#e1f5fe','#f3e5f5','#e8f5e9'];
             if(!ARCHIVE_DB.wall) ARCHIVE_DB.wall = [];
             ARCHIVE_DB.wall.push({ t: v, x: Math.random()*70+5, y: Math.random()*70+5, c: colors[Math.floor(Math.random()*colors.length)], r: Math.random()*20-10 });
-            document.getElementById('wl-in').value = ""; 
-            saveToLocal(); 
-            renderWall();
+            document.getElementById('wl-in').value = ""; saveToLocal(); renderWall();
         }
     }
     function deleteFlyer(i) { if(confirm("메모를 뗄까요?")) { ARCHIVE_DB.wall.splice(i, 1); saveToLocal(); renderWall(); } }
@@ -652,20 +613,12 @@
     function renderGallery() {
         const target = document.getElementById('gal-render');
         if(!target) return;
-        target.innerHTML = (ARCHIVE_DB.gallery || []).map((img, i) => `
-            <div class="polaroid-frame" onclick="deletePhoto(${i})">
-                <img src="${img}" style="width:100%; height:250px; object-fit:cover;">
-            </div>`).join('');
+        target.innerHTML = (ARCHIVE_DB.gallery || []).map((img, i) => `<div class="polaroid-frame" onclick="deletePhoto(${i})"><img src="${img}" style="width:100%; height:250px; object-fit:cover;"></div>`).join('');
     }
     function savePhoto(input) {
         if(input.files[0]) {
             const reader = new FileReader();
-            reader.onload = e => {
-                if(!ARCHIVE_DB.gallery) ARCHIVE_DB.gallery = [];
-                ARCHIVE_DB.gallery.push(e.target.result); 
-                saveToLocal(); 
-                renderGallery();
-            };
+            reader.onload = e => { if(!ARCHIVE_DB.gallery) ARCHIVE_DB.gallery = []; ARCHIVE_DB.gallery.push(e.target.result); saveToLocal(); renderGallery(); };
             reader.readAsDataURL(input.files[0]);
         }
     }
@@ -673,11 +626,20 @@
 
     function handleBookClick(i) {
         const b = ARCHIVE_DB.books[i];
-        if(confirm(`📖 [${b.tit}]\n"${b.rev}"\n\n이 책을 버릴까요?`)) {
-            ARCHIVE_DB.books.splice(i, 1);
-            saveToLocal();
-            renderBooks();
+        if(confirm(`📖 [${b.tit}]\n"${b.rev}"\n\n이 책을 버릴까요?`)) { ARCHIVE_DB.books.splice(i, 1); saveToLocal(); renderBooks(); }
+    }
+    
+    let tempDiaryImg = "";
+    function handleDiaryImage(input) {
+        if(input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => { tempDiaryImg = e.target.result; alert("이미지 첨부됨"); };
+            reader.readAsDataURL(input.files[0]);
         }
+    }
+    function deleteDiary(i) { if(confirm("삭제?")) { ARCHIVE_DB.diary.splice(i, 1); saveToLocal(); renderDiary(); } }
+    function replyDiary(i) {
+        const r = prompt("답글:"); if(r) { if(!ARCHIVE_DB.diary[i].replies) ARCHIVE_DB.diary[i].replies = []; ARCHIVE_DB.diary[i].replies.push({u: currentUser.name, txt: r}); saveToLocal(); renderDiary(); }
     }
 </script>
 </body>
