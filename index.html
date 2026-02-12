@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -262,14 +263,21 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let currentUser = { name: "", pw: "", img: "" };
+let currentUser = { name: "", pw: "", img: "" };
     let pwInputString = "";
-    let ARCHIVE_DB = { calendar: {}, movies: [], diary: [], books: [], wall: [], gallery: [] };
+    let ARCHIVE_DB = { calendar: {}, movies: [], diary: [], books: [], wall: [], gallery: [], profiles: {} };
 
-    // 2. Firebase 실시간 데이터 연동
+    // [1] Firebase 실시간 데이터 연동
     db.ref('VILLA_302_DATA').on('value', (snapshot) => {
-        if (snapshot.val()) {
-            ARCHIVE_DB = snapshot.val();
+        const data = snapshot.val();
+        if (data) {
+            ARCHIVE_DB = data;
+            // 실시간 프로필 동기화
+            if (currentUser.name && ARCHIVE_DB.profiles && ARCHIVE_DB.profiles[currentUser.name]) {
+                currentUser.img = ARCHIVE_DB.profiles[currentUser.name];
+                const navImg = document.getElementById('user-avatar-img');
+                if(navImg) navImg.src = currentUser.img;
+            }
             const currentModal = document.getElementById('modal-overlay').style.display;
             if(currentModal === 'flex') {
                 if(document.getElementById('dy-render')) renderDiary();
@@ -277,73 +285,43 @@
         }
     });
 
-    function saveToLocal() {
-        db.ref('VILLA_302_DATA').set(ARCHIVE_DB);
-        localStorage.setItem('VILLA_302_DATA', JSON.stringify(ARCHIVE_DB));
-    }
-
-    // [비밀번호 입력 함수] - 4자리가 되면 즉시 로그인 시도
-    function addPw(n) { 
-        if(!currentUser.name) {
-            alert("사용자를 먼저 선택해 주세요.");
-            return;
+    // [2] 사용자 초기 선택
+    function initUser(n, p, i) {
+        let savedImg = i;
+        // 서버 저장본이 있으면 우선 사용
+        if (ARCHIVE_DB.profiles && ARCHIVE_DB.profiles[n]) {
+            savedImg = ARCHIVE_DB.profiles[n];
         } 
+        currentUser = { name: n, pw: p, img: savedImg };
         
-        if(pwInputString.length < 4) {
-            pwInputString += n; 
-            updatePwUI(); 
-        }
-
-        // 4자리가 되는 순간 '즉시' 로그인 실행
-        if(pwInputString.length === 4) {
-            tryLogin();
-        }
+        document.querySelectorAll('.u-profile').forEach(el => el.classList.remove('active'));
+        const targetId = (n === '평화' ? 'p-peace' : 'p-in');
+        const targetEl = document.getElementById(targetId);
+        if(targetEl) targetEl.classList.add('active');
+        
+        pwInputString = ""; 
+        updatePwUI();
     }
 
-    // [로그인 시도 함수]
+    // [3] 비밀번호 입력 및 로그인 로직
+    function addPw(n) { 
+        if(!currentUser.name) { alert("사용자를 먼저 선택해 주세요."); return; }
+        if(pwInputString.length < 4) { pwInputString += n; updatePwUI(); }
+        if(pwInputString.length === 4) { tryLogin(); }
+    }
+
     function tryLogin() {
         if(!currentUser.name || pwInputString.length < 4) return;
-
         if(pwInputString === currentUser.pw) {
-            // 성공: 즉시 화면 전환
             document.getElementById('entry-page').style.display = 'none';
             document.getElementById('user-display').style.visibility = 'visible';
             document.getElementById('user-name-label').innerText = currentUser.name;
             document.getElementById('user-avatar-img').src = currentUser.img;
-            
-            // BGM 시작
             playTrack(0);
         } else { 
-            // 실패: 알림 후 초기화
             alert("비밀번호가 틀렸습니다.");
             clearPw();
         }
-    }
-
-    // [키보드 이벤트 핸들러]
-    function handleGlobalKey(e) {
-        const entryPage = document.getElementById('entry-page');
-        if (entryPage && entryPage.style.display !== 'none') {
-            if (e.key >= '0' && e.key <= '9') {
-                addPw(e.key);
-            }
-            else if (e.key === 'Backspace' || e.key === 'Escape') {
-                clearPw();
-            }
-            else if (e.key === 'Enter') {
-                if(pwInputString.length === 4) tryLogin();
-            }
-        }
-        if (e.key === "Escape") closeArchive();
-    }
-
-    function initUser(n, p, i) {
-        const savedImg = localStorage.getItem(`profile_${n}`);
-        currentUser = { name: n, pw: p, img: savedImg || i };
-        document.querySelectorAll('.u-profile').forEach(el => el.classList.remove('active'));
-        document.getElementById(n === '평화' ? 'p-peace' : 'p-in').classList.add('active');
-        pwInputString = ""; 
-        updatePwUI();
     }
 
     function clearPw() { pwInputString = ""; updatePwUI(); }
@@ -351,24 +329,48 @@
         const display = document.getElementById('pw-display');
         if(display) display.innerText = "*".repeat(pwInputString.length).padEnd(4, "-"); 
     }
-    
-    function tryExit() { if(confirm("퇴실하시겠습니까?")) location.reload(); }
 
+    function handleGlobalKey(e) {
+        const entryPage = document.getElementById('entry-page');
+        if (entryPage && entryPage.style.display !== 'none') {
+            if (e.key >= '0' && e.key <= '9') addPw(e.key);
+            else if (e.key === 'Backspace' || e.key === 'Escape') clearPw();
+            else if (e.key === 'Enter' && pwInputString.length === 4) tryLogin();
+        }
+        if (e.key === "Escape") closeArchive();
+    }
+
+    // [4] 프로필 이미지 변경 및 서버 저장
     function changeProfileImg() {
         const input = document.createElement('input');
         input.type = 'file';
+        input.accept = 'image/*';
         input.onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 1024 * 1024) { alert("1MB 이하만 가능합니다."); return; }
             const reader = new FileReader();
             reader.onload = ev => {
-                currentUser.img = ev.target.result;
-                document.getElementById('user-avatar-img').src = ev.target.result;
-                localStorage.setItem(`profile_${currentUser.name}`, ev.target.result);
+                const imageData = ev.target.result;
+                currentUser.img = imageData;
+                document.getElementById('user-avatar-img').src = imageData;
+                if (!ARCHIVE_DB.profiles) ARCHIVE_DB.profiles = {};
+                ARCHIVE_DB.profiles[currentUser.name] = imageData;
                 saveToLocal();
+                alert("프로필이 저장되었습니다.");
             };
-            reader.readAsDataURL(e.target.files[0]);
+            reader.readAsDataURL(file);
         };
         input.click();
     }
+
+    // [5] 서버 데이터 저장 함수 (매우 중요!)
+    function saveToLocal() {
+        db.ref('VILLA_302_DATA').set(ARCHIVE_DB);
+    }
+
+    function tryExit() { if(confirm("퇴실하시겠습니까?")) location.reload(); }
+
 
     /* BGM 시스템 */
     let playlist = JSON.parse(localStorage.getItem('villa_playlist')) || [
