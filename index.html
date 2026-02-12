@@ -270,10 +270,8 @@
     db.ref('VILLA_302_DATA').on('value', (snapshot) => {
         if (snapshot.val()) {
             ARCHIVE_DB = snapshot.val();
-            // 현재 어떤 아카이브가 열려있다면 화면 갱신
             const currentModal = document.getElementById('modal-overlay').style.display;
             if(currentModal === 'flex') {
-                // 특정 모달이 열려있을 때만 해당 렌더러 호출 (예: 다이어리)
                 if(document.getElementById('dy-render')) renderDiary();
             }
         }
@@ -284,13 +282,57 @@
         localStorage.setItem('VILLA_302_DATA', JSON.stringify(ARCHIVE_DB));
     }
 
-    // [입장 시 물리키보드 입력 기능]
+    // [비밀번호 입력 함수] - 4자리가 되면 즉시 로그인 시도
+    function addPw(n) { 
+        if(!currentUser.name) {
+            alert("사용자를 먼저 선택해 주세요.");
+            return;
+        } 
+        
+        if(pwInputString.length < 4) {
+            pwInputString += n; 
+            updatePwUI(); 
+        }
+
+        // 4자리가 되는 순간 '즉시' 로그인 실행
+        if(pwInputString.length === 4) {
+            tryLogin();
+        }
+    }
+
+    // [로그인 시도 함수]
+    function tryLogin() {
+        if(!currentUser.name || pwInputString.length < 4) return;
+
+        if(pwInputString === currentUser.pw) {
+            // 성공: 즉시 화면 전환
+            document.getElementById('entry-page').style.display = 'none';
+            document.getElementById('user-display').style.visibility = 'visible';
+            document.getElementById('user-name-label').innerText = currentUser.name;
+            document.getElementById('user-avatar-img').src = currentUser.img;
+            
+            // BGM 시작
+            playTrack(0);
+        } else { 
+            // 실패: 알림 후 초기화
+            alert("비밀번호가 틀렸습니다.");
+            clearPw();
+        }
+    }
+
+    // [키보드 이벤트 핸들러]
     function handleGlobalKey(e) {
-        if (document.getElementById('entry-page').style.display !== 'none') {
-            if (e.key >= '0' && e.key <= '9') addPw(e.key);
-            if (e.key === 'Backspace') clearPw();
-            if (e.key === 'Enter') tryLogin();
-            if (e.key === 'Escape') clearPw();
+        const entryPage = document.getElementById('entry-page');
+        if (entryPage && entryPage.style.display !== 'none') {
+            if (e.key >= '0' && e.key <= '9') {
+                addPw(e.key);
+            }
+            else if (e.key === 'Backspace' || e.key === 'Escape') {
+                clearPw();
+            }
+            else if (e.key === 'Enter') {
+                if(pwInputString.length === 4) tryLogin();
+            }
         }
         if (e.key === "Escape") closeArchive();
     }
@@ -300,25 +342,16 @@
         currentUser = { name: n, pw: p, img: savedImg || i };
         document.querySelectorAll('.u-profile').forEach(el => el.classList.remove('active'));
         document.getElementById(n === '평화' ? 'p-peace' : 'p-in').classList.add('active');
-        pwInputString = ""; updatePwUI();
-    }
-    function addPw(n) { if(!currentUser.name) return; if(pwInputString.length < 4) pwInputString += n; updatePwUI(); }
-    function clearPw() { pwInputString = ""; updatePwUI(); }
-    function updatePwUI() { document.getElementById('pw-display').innerText = "*".repeat(pwInputString.length).padEnd(4, "-"); }
-    
-    function tryLogin() {
-        if(pwInputString === currentUser.pw) {
-            document.getElementById('entry-page').style.display = 'none';
-            document.getElementById('user-display').style.visibility = 'visible';
-            document.getElementById('user-name-label').innerText = currentUser.name;
-            document.getElementById('user-avatar-img').src = currentUser.img;
-            playTrack(0);
-        } else { 
-            alert("ACCESS DENIED"); 
-            pwInputString = ""; updatePwUI(); 
-        }
+        pwInputString = ""; 
+        updatePwUI();
     }
 
+    function clearPw() { pwInputString = ""; updatePwUI(); }
+    function updatePwUI() { 
+        const display = document.getElementById('pw-display');
+        if(display) display.innerText = "*".repeat(pwInputString.length).padEnd(4, "-"); 
+    }
+    
     function tryExit() { if(confirm("퇴실하시겠습니까?")) location.reload(); }
 
     function changeProfileImg() {
@@ -448,11 +481,8 @@
     function renderDiary() {
         const target = document.getElementById('dy-render');
         if(!target) return;
-        // [iMessage DIARY 날짜 중앙 정렬 반영]
         let diaryHTML = `<div style="text-align:center; width:100%; color:#8e8e93; font-size:0.8rem; margin:20px 0; font-weight:600; clear:both;">2026년 2월 12일 목요일</div>`;
-        
         if(!ARCHIVE_DB.diary) ARCHIVE_DB.diary = [];
-        
         diaryHTML += ARCHIVE_DB.diary.map((d, i) => `
             <div class="imsg-row ${d.u === currentUser.name ? 'me' : 'you'}">
                 <img src="${d.img || 'default.jpg'}" class="imsg-avatar">
@@ -469,7 +499,6 @@
                     <div class="imsg-comments">${d.replies ? d.replies.map(r => `<div><b>${r.u}:</b> ${r.txt}</div>`).join('') : ''}</div>
                 </div>
             </div>`).join('');
-            
         target.innerHTML = diaryHTML;
         target.scrollTop = target.scrollHeight;
     }
@@ -484,7 +513,6 @@
         document.getElementById('dy-in').value = "";
     }
 
-    /* 나머지 렌더링 함수들 */
     function renderCal() {
         const target = document.getElementById('cal-render'); target.innerHTML = "";
         for(let i=1; i<=28; i++) {
@@ -540,7 +568,8 @@
         if(txt) { ARCHIVE_DB.movies[i].cmts.push({u: currentUser.name, txt: txt, star: 5}); saveToLocal(); renderMovies(); }
     }
     function renderWall() {
-        const board = document.getElementById('wall-board'); board.innerHTML = "";
+        const board = document.getElementById('wall-board'); if(!board) return;
+        board.innerHTML = "";
         ARCHIVE_DB.wall.forEach((f, i) => {
             const el = document.createElement('div'); el.className = 'flyer';
             el.style = `left:${f.x}%; top:${f.y}%; transform:rotate(${f.rot}deg); background:${f.col};`;
@@ -550,16 +579,23 @@
         });
     }
     function saveFlyer() {
-        const txt = document.getElementById('wl-in').value;
-        if(txt) { ARCHIVE_DB.wall.push({ u: currentUser.name, txt: txt, x: Math.random()*70, y: Math.random()*70, rot: (Math.random()-0.5)*30, col: '#fff176' }); saveToLocal(); renderWall(); }
+        const t = document.getElementById('wl-in').value;
+        if(t) {
+            ARCHIVE_DB.wall.push({
+                u: currentUser.name, txt: t, 
+                x: Math.random()*70+5, y: Math.random()*60+5, 
+                rot: Math.random()*20-10, col: ['#fff9c4','#ffecb3','#f8bbd0','#e1f5fe'][Math.floor(Math.random()*4)]
+            });
+            saveToLocal(); renderWall(); document.getElementById('wl-in').value="";
+        }
     }
     function renderGallery() {
-        document.getElementById('gal-render').innerHTML = ARCHIVE_DB.gallery.map(g => `<div class="polaroid-frame"><img src="${g.src}" style="width:100%;"></div>`).join('');
+        document.getElementById('gal-render').innerHTML = ARCHIVE_DB.gallery.map((p, i) => `<div class="polaroid-frame" onclick="if(confirm('삭제?')){ARCHIVE_DB.gallery.splice(${i},1);saveToLocal();renderGallery();}"><img src="${p}" style="width:100%;"></div>`).join('');
     }
     function savePhoto(input) {
         if(input.files[0]) {
             const reader = new FileReader();
-            reader.onload = e => { ARCHIVE_DB.gallery.push({src: e.target.result}); saveToLocal(); renderGallery(); };
+            reader.onload = e => { ARCHIVE_DB.gallery.push(e.target.result); saveToLocal(); renderGallery(); };
             reader.readAsDataURL(input.files[0]);
         }
     }
